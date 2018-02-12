@@ -1,5 +1,5 @@
-using Hyperspecialize
-using Base.Test
+using Test
+push!(LOAD_PATH, ".")
 
-# write your own tests here
-@test 1 == 2
+include("concretization.jl")
+include("replicables.jl")
