@@ -1,5 +1,5 @@
 using Test
+using Hyperspecialize
 push!(LOAD_PATH, ".")
 
-include("concretization.jl")
-include("replicables.jl")
+include("simple_concretization.jl")

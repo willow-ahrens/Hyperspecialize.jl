@@ -42,11 +42,11 @@ function parse_element(base_mod, K)
   return (M, K)
 end
 
-function concretize(base_mod, target_mod, key, types::Type)
-  return concretize(base_mod, target_mod, key, [types])
+function _concretize(base_mod, target_mod, key, types::Type)
+  return _concretize(base_mod, target_mod, key, [types])
 end
 
-function concretize(base_mod, target_mod, key, types)
+function _concretize(base_mod, target_mod, key, types)
   if base_mod == target_mod
     if !isdefined(base_mod, :__hyperspecialize__)
       eval(base_mod, quote
@@ -67,51 +67,49 @@ end
 
 macro concretize(K, T)
   (M, K) = parse_element(__module__, K)
-  return :(concretize($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
+  return :(_concretize($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
 end
 
-function widen(base_mod, target_mod, key, types::Type)
-  return widen(base_mod, target_mod, key, [types])
+function _widen(base_mod, target_mod, key, types::Type)
+  return _widen(base_mod, target_mod, key, [types])
 end
 
-function widen(base_mod, target_mod, key, types)
-  if isdefined(target_mod, :__hyperspecialize__) && key in keys(target_mod.__hyperspecialize__[:concretizations])
-    union!(target_mod.__hyperspecialize__[:concretizations][key], Set{Type}(types))
-  else
-    concretize(base_mod, target_mod, key, types)
-  end
+function _widen(base_mod, target_mod, key, types)
+  _concretization(base_mod, target_mod, key)
+  union!(target_mod.__hyperspecialize__[:concretizations][key], Set{Type}(types))
   if key in keys(target_mod.__hyperspecialize__[:replicables])
     for (def_mod, E, elements) in target_mod.__hyperspecialize__[:replicables][key]
-      define(def_mod, E, elements...)
+      _define(def_mod, E, elements...)
     end
   end
+  target_mod.__hyperspecialize__[:concretizations][key]
 end
 
 macro widen(K, T)
   (M, K) = parse_element(__module__, K)
-  return :(widen($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
+  return :(_widen($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
 end
 
-function concretization(base_mod, target_mod, key)
+function _concretization(base_mod, target_mod, key)
   if isdefined(target_mod, :__hyperspecialize__) && key in keys(target_mod.__hyperspecialize__[:concretizations])
-    return target_mod.__hyperspecialize__[:concretizations][key]
+    target_mod.__hyperspecialize__[:concretizations][key]
   else
     if isdefined(target_mod, key)
       types = concretesubtypes(eval(target_mod, key))
     else
       types = []
     end
-    concretize(base_mod, target_mod, key, types)
-    return types
+    _concretize(base_mod, target_mod, key, types)
   end
+  target_mod.__hyperspecialize__[:concretizations][key]
 end
 
 macro concretization(K)
   (M, K) = parse_element(__module__, K)
-  return :(concretization($(esc(__module__)), $(esc(M)), $(QuoteNode(K))))
+  return :(_concretization($(esc(__module__)), $(esc(M)), $(QuoteNode(K))))
 end
 
-function define(def_mod, E, elements...)
+function _define(def_mod, E, elements...)
   found = false
   target_mod = nothing
   key = nothing
@@ -123,9 +121,9 @@ function define(def_mod, E, elements...)
     X
   end, E)
   if found
-    for typ in concretization(def_mod, target_mod, key)
+    for typ in _concretization(def_mod, target_mod, key)
       found = false
-      define(def_mod, MacroTools.postwalk(X -> begin
+      _define(def_mod, MacroTools.postwalk(X -> begin
         if @capture(X, @hyperspecialize(_)) && !found
           found = true
           typ
@@ -139,7 +137,7 @@ function define(def_mod, E, elements...)
   end
 end
 
-function replicable(base_mod, E, elements...)
+function _replicable(base_mod, E, elements...)
   MacroTools.postwalk(X -> begin
     if @capture(X, @hyperspecialize(I_))
       (target_mod, key) = elements[I]
@@ -152,7 +150,7 @@ function replicable(base_mod, E, elements...)
     end
     X
   end, E)
-  define(base_mod, E, elements...)
+  _define(base_mod, E, elements...)
 end
 
 macro replicable(E)
@@ -172,7 +170,7 @@ macro replicable(E)
       X
     end
   end, E)
-  return :(replicable($(esc(__module__)), $(QuoteNode(E)), $thunk))
+  return :(_replicable($(esc(__module__)), $(QuoteNode(E)), $thunk))
 end
 
 export @concretize, @widen, @concretization, @replicable
