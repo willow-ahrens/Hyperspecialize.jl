@@ -52,7 +52,7 @@ function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::S
       end)
     end
     if key in keys(target_mod.__hyperspecialize__[:concretizations])
-      error("cannot reconcretize $T")
+      error("cannot reconcretize \"$key\" in module \"$target_mod\"")
     else
       target_mod.__hyperspecialize__[:concretizations][key] = types
     end

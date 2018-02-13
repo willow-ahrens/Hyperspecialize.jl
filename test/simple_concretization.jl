@@ -1,4 +1,3 @@
-
 @testset "Simple Concretization Gala" begin
   # Did you pregame the gala?
   @test @concretization(Pregame) == Set{Type}([String])
@@ -63,6 +62,9 @@ using Hyperspecialize
 
   # What if we grab the concretization before we define the type?
   @test @concretization(Wobble) == Set{Type}([])
+
+  # Cannot reconcretize
+  @test_throws ErrorException (@concretize Signed Int64)
 
 end
 

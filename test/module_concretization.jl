@@ -30,12 +30,15 @@ import Foo
   @test (@concretization Float32) == Set{Type}([Float64])
   @test (@concretization (ModuleConcretization, AlsoNotAType)) == Set{Type}([Int32])
   @test (@concretization Float64) == Set{Type}([Float32, Float64])
-  @test_throws ErrorException @concretization((Foo, NotAType)) == true
-  @test_throws ErrorException @concretization (foo, Float32)
   @test (@concretization (Foo.Bar, NotAType)) == Set{Type}([UInt64])
   @test (@concretization (foo.Bar, Float32)) == Set{Type}([UInt128])
   @test (@concretization (bar, AlsoNotAType)) == Set{Type}([Int64])
   @test (@concretization (Foo.Bar, Float64)) == Set{Type}([UInt16, Float32])
+
+  # Cannot reconcretize or concretize in other packages
+  @test_throws ErrorException @concretization((Foo, NotAType)) == true
+  @test_throws ErrorException @concretization (foo, Float32)
+  @test_throws ErrorException (@concretize (foo, Float32) Int64)
 
   # Default concretizations are load-order dependent
   @test (@concretization((foo, Wobble)) == Set{Type}([Foo.Wobble]))
