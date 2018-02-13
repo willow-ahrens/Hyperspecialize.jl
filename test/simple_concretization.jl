@@ -1,4 +1,17 @@
+
+@testset "Simple Concretization Gala" begin
+  # Did you pregame the gala?
+  @test @concretization(Pregame) == Set{Type}([String])
+end
+
+module SimpleConcretization
+
+using Test
+using Hyperspecialize
+
+
 @testset "Simple Concretization" begin
+
   # Can we concretize an abstract type to a subset of its concrete types?
   @test (@concretize Integer [Int64]) == Set{Type}([Int64])
   @test @concretization(Integer) == Set{Type}([Int64])
@@ -47,4 +60,24 @@
   @test @concretize(x, (Int32,)) == Set{Type}([Int32])
   @test @concretization(x) == Set{Type}([Int32])
   @test @concretization(Int64) == Set{Type}([Int64])
+
+  # What if we grab the concretization before we define the type?
+  @test @concretization(Wobble) == Set{Type}([])
+
 end
+
+struct Wobble
+  w::Float32
+end
+
+@testset "Simple Concretization Afterparty" begin
+
+  # Concretization is still messed up.
+  @test @concretization(Wobble) == Set{Type}([])
+
+  # We can add the type after...
+  @test @widen(Wobble, Wobble) == Set{Type}([Wobble])
+
+end
+
+end #module

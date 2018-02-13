@@ -24,14 +24,6 @@ function concretesubtypes(t)
   end
 end
 
-function make_type_set(t)
-  return Set{Type}(t)
-end
-
-function make_type_set(t::Type)
-  return Set{Type}((t,))
-end
-
 function parse_element(base_mod, K)
   if @capture(K, (L_, R_))
     M = L
@@ -42,11 +34,15 @@ function parse_element(base_mod, K)
   return (M, K)
 end
 
-function _concretize(base_mod, target_mod, key, types::Type)
+function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::Type)
   return _concretize(base_mod, target_mod, key, [types])
 end
 
-function _concretize(base_mod, target_mod, key, types)
+function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types)
+  return _concretize(base_mod, target_mod, key, Set{Type}(types))
+end
+
+function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::Set{Type})
   if base_mod == target_mod
     if !isdefined(base_mod, :__hyperspecialize__)
       eval(base_mod, quote
@@ -58,7 +54,7 @@ function _concretize(base_mod, target_mod, key, types)
     if key in keys(target_mod.__hyperspecialize__[:concretizations])
       error("cannot reconcretize $T")
     else
-      target_mod.__hyperspecialize__[:concretizations][key] = Set{Type}(types)
+      target_mod.__hyperspecialize__[:concretizations][key] = types
     end
   else
     error("cannot concretize \"$key\" in module \"$target_mod\" from module \"$base_mod\"")
@@ -70,13 +66,17 @@ macro concretize(K, T)
   return :(_concretize($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
 end
 
-function _widen(base_mod, target_mod, key, types::Type)
+function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Type)
   return _widen(base_mod, target_mod, key, [types])
 end
 
-function _widen(base_mod, target_mod, key, types)
+function _widen(base_mod::Module, target_mod::Module, key::Symbol, types)
+  return _widen(base_mod, target_mod, key, Set{Type}(types))
+end
+
+function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Set{Type})
   _concretization(base_mod, target_mod, key)
-  union!(target_mod.__hyperspecialize__[:concretizations][key], Set{Type}(types))
+  union!(target_mod.__hyperspecialize__[:concretizations][key], types)
   if key in keys(target_mod.__hyperspecialize__[:replicables])
     for (def_mod, E, elements) in target_mod.__hyperspecialize__[:replicables][key]
       _define(def_mod, E, elements...)
@@ -90,7 +90,7 @@ macro widen(K, T)
   return :(_widen($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
 end
 
-function _concretization(base_mod, target_mod, key)
+function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
   if isdefined(target_mod, :__hyperspecialize__) && key in keys(target_mod.__hyperspecialize__[:concretizations])
     target_mod.__hyperspecialize__[:concretizations][key]
   else
@@ -109,7 +109,7 @@ macro concretization(K)
   return :(_concretization($(esc(__module__)), $(esc(M)), $(QuoteNode(K))))
 end
 
-function _define(def_mod, E, elements...)
+function _define(def_mod::Module, E::QuoteNode, elements::Vararg{Tuple{Module, Symbol}})
   found = false
   target_mod = nothing
   key = nothing
@@ -137,7 +137,7 @@ function _define(def_mod, E, elements...)
   end
 end
 
-function _replicable(base_mod, E, elements...)
+function _replicable(base_mod::Module, E::QuoteNode, elements::Vararg{Tuple{Module, Symbol}})
   MacroTools.postwalk(X -> begin
     if @capture(X, @hyperspecialize(I_))
       (target_mod, key) = elements[I]

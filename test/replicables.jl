@@ -1,4 +1,6 @@
-@testset "simple replicability" begin
+module SimpleReplicables
+
+@testset "Simple Replicables" begin
   using Hyperspecialize
 
   push!(LOAD_PATH, ".")
@@ -14,4 +16,6 @@
   end
 
   @test wobble(Float32(1.0)) == Float32
+end
+
 end
