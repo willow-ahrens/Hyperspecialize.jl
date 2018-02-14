@@ -34,6 +34,18 @@ function parse_element(base_mod, K)
   return (M, K)
 end
 
+struct Replicable
+  def_mod::Module
+  E::Any
+  defined::Set{Any}
+  elements::Vector{Tuple{Module, Symbol}}
+end
+
+struct Concrete
+  concretization::Set{Type}
+  replicables::Vector{Replicable}
+end
+
 function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::Type)
   return _concretize(base_mod, target_mod, key, [types])
 end
@@ -47,18 +59,17 @@ function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::S
     if !isdefined(base_mod, :__hyperspecialize__)
       eval(base_mod, quote
         const global __hyperspecialize__ = Dict{Symbol, Any}()
-        __hyperspecialize__[:concretizations] = Dict{Symbol, Set{Type}}()
-        __hyperspecialize__[:replicables] = Dict{Symbol, Vector{Tuple{Module, Any, Any}}}()
       end)
     end
-    if key in keys(target_mod.__hyperspecialize__[:concretizations])
-      error("cannot reconcretize \"$key\" in module \"$target_mod\"")
+    if haskey(target_mod.__hyperspecialize__, key)
+      error("cannot reconcretize \"$key\" in module \"$target_mod\" (TODO)")
     else
-      target_mod.__hyperspecialize__[:concretizations][key] = types
+      target_mod.__hyperspecialize__[key] = Concrete(types, [])
     end
   else
     error("cannot concretize \"$key\" in module \"$target_mod\" from module \"$base_mod\"")
   end
+  return Set{Type}(target_mod.__hyperspecialize__[key].concretization)
 end
 
 macro concretize(K, T)
@@ -76,13 +87,9 @@ end
 
 function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Set{Type})
   _concretization(base_mod, target_mod, key)
-  union!(target_mod.__hyperspecialize__[:concretizations][key], types)
-  if key in keys(target_mod.__hyperspecialize__[:replicables])
-    for (def_mod, E, elements) in target_mod.__hyperspecialize__[:replicables][key]
-      _define(def_mod, E, elements...)
-    end
-  end
-  target_mod.__hyperspecialize__[:concretizations][key]
+  union!(target_mod.__hyperspecialize__[key].concretization, types)
+  map(_define, target_mod.__hyperspecialize__[key].replicables)
+  return Set{Type}(target_mod.__hyperspecialize__[key].concretization)
 end
 
 macro widen(K, T)
@@ -91,9 +98,7 @@ macro widen(K, T)
 end
 
 function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
-  if isdefined(target_mod, :__hyperspecialize__) && key in keys(target_mod.__hyperspecialize__[:concretizations])
-    target_mod.__hyperspecialize__[:concretizations][key]
-  else
+  if !isdefined(target_mod, :__hyperspecialize__) || !haskey(target_mod.__hyperspecialize__, key)
     if isdefined(target_mod, key)
       types = concretesubtypes(eval(target_mod, key))
     else
@@ -101,7 +106,7 @@ function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
     end
     _concretize(base_mod, target_mod, key, types)
   end
-  target_mod.__hyperspecialize__[:concretizations][key]
+  return Set{Type}(target_mod.__hyperspecialize__[key].concretization)
 end
 
 macro concretization(K)
@@ -109,48 +114,46 @@ macro concretization(K)
   return :(_concretization($(esc(__module__)), $(esc(M)), $(QuoteNode(K))))
 end
 
-function _define(def_mod::Module, E, elements::Vararg{Tuple{Module, Symbol}})
+_define(r::Replicable) = _define(r.E, r)
+
+function _define(E, r::Replicable)
   found = false
   target_mod = nothing
   key = nothing
   MacroTools.postwalk(X -> begin
     if @capture(X, @hyperspecialize(I_)) && !found
-      (target_mod, key) = elements[I]
+      (target_mod, key) = r.elements[I]
       found = true
     end
     X
   end, E)
   if found
-    for typ in _concretization(def_mod, target_mod, key)
+    for typ in _concretization(r.def_mod, target_mod, key)
       found = false
-      _define(def_mod, MacroTools.postwalk(X -> begin
+      _define(MacroTools.postwalk(X -> begin
         if @capture(X, @hyperspecialize(_)) && !found
           found = true
           typ
         else
           X
         end
-      end, E), elements...)
+      end, E), r)
     end
   else
-    eval(def_mod, E)
+    if !(E in r.defined)
+      eval(r.def_mod, E)
+      push!(r.defined, E)
+    end
   end
 end
 
 function _replicable(base_mod::Module, E, elements::Vararg{Tuple{Module, Symbol}})
-  MacroTools.postwalk(X -> begin
-    if @capture(X, @hyperspecialize(I_))
-      (target_mod, key) = elements[I]
-      _concretization(base_mod, target_mod, key)
-      if key in keys(target_mod.__hyperspecialize__[:replicables])
-        push!(target_mod.__hyperspecialize__[:replicables][key], (base_mod, E, elements))
-      else
-        target_mod.__hyperspecialize__[:replicables][key] = [(base_mod, E, elements)]
-      end
-    end
-    X
-  end, E)
-  _define(base_mod, E, elements...)
+  r = Replicable(base_mod, E, Set{Any}(), [elements...])
+  for (target_mod, key) in Set{Tuple{Module, Symbol}}([elements...])
+    _concretization(base_mod, target_mod, key)
+    push!(target_mod.__hyperspecialize__[key].replicables, r)
+  end
+  _define(r)
 end
 
 macro replicable(E)
