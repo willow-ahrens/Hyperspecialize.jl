@@ -49,10 +49,6 @@ h(::Signed, ::Signed, ::Unsigned) = false
 
   @test f(1.0)
 
-  @replicable function f(::@hyperspecialize(NotAType))
-    return true
-  end
-
   # How does specialization interact with multiple hyperspecials?
 
   @concretize Signed (Int8, Int16)
