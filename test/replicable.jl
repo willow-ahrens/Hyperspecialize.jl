@@ -49,6 +49,14 @@ h(::Signed, ::Signed, ::Unsigned) = false
 
   @test f(1.0)
 
+  # What happens if a replicable has no hyperspecializes?
+
+  @replicable function f(::String)
+    return true
+  end
+
+  @test f("hello")
+
   # How does specialization interact with multiple hyperspecials?
 
   @concretize Signed (Int8, Int16)
