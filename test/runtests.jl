@@ -9,3 +9,4 @@ end
 
 include("simple_concretization.jl")
 include("module_concretization.jl")
+include("replicable.jl")

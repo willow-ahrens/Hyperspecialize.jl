@@ -48,7 +48,7 @@ function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::S
       eval(base_mod, quote
         const global __hyperspecialize__ = Dict{Symbol, Any}()
         __hyperspecialize__[:concretizations] = Dict{Symbol, Set{Type}}()
-        __hyperspecialize__[:replicables] = Dict{Symbol, Tuple{Module, Any, Any}}()
+        __hyperspecialize__[:replicables] = Dict{Symbol, Vector{Tuple{Module, Any, Any}}}()
       end)
     end
     if key in keys(target_mod.__hyperspecialize__[:concretizations])
@@ -109,12 +109,12 @@ macro concretization(K)
   return :(_concretization($(esc(__module__)), $(esc(M)), $(QuoteNode(K))))
 end
 
-function _define(def_mod::Module, E::QuoteNode, elements::Vararg{Tuple{Module, Symbol}})
+function _define(def_mod::Module, E, elements::Vararg{Tuple{Module, Symbol}})
   found = false
   target_mod = nothing
   key = nothing
   MacroTools.postwalk(X -> begin
-    if @capture(X, @hyperspecialize(I_))
+    if @capture(X, @hyperspecialize(I_)) && !found
       (target_mod, key) = elements[I]
       found = true
     end
@@ -137,15 +137,15 @@ function _define(def_mod::Module, E::QuoteNode, elements::Vararg{Tuple{Module, S
   end
 end
 
-function _replicable(base_mod::Module, E::QuoteNode, elements::Vararg{Tuple{Module, Symbol}})
+function _replicable(base_mod::Module, E, elements::Vararg{Tuple{Module, Symbol}})
   MacroTools.postwalk(X -> begin
     if @capture(X, @hyperspecialize(I_))
       (target_mod, key) = elements[I]
-      concretization(base_mod, target_mod, key)
+      _concretization(base_mod, target_mod, key)
       if key in keys(target_mod.__hyperspecialize__[:replicables])
         push!(target_mod.__hyperspecialize__[:replicables][key], (base_mod, E, elements))
       else
-        target_mod.__hyperspecialize__[:replicables][key] = (base_mod, E, elements)
+        target_mod.__hyperspecialize__[:replicables][key] = [(base_mod, E, elements)]
       end
     end
     X
@@ -154,23 +154,19 @@ function _replicable(base_mod::Module, E::QuoteNode, elements::Vararg{Tuple{Modu
 end
 
 macro replicable(E)
-  thunk = :()
+  elements = []
   count = 0
   E = MacroTools.postwalk(X -> begin
     if @capture(X, @hyperspecialize(K_))
       (M, K) = parse_element(__module__, K)
-      if count == 0
-        thunk = :(($(esc(M)), $(QuoteNode(K))))
-      else
-        thunk = :($thunk, ($(esc(M)), $(QuoteNode(K))))
-      end
+      push!(elements, :(($(esc(M)), $(QuoteNode(K)))))
       count += 1
       :(@hyperspecialize($count))
     else
       X
     end
   end, E)
-  return :(_replicable($(esc(__module__)), $(QuoteNode(E)), $thunk))
+  return :(_replicable($(esc(__module__)), $(QuoteNode(E)), $(elements...)))
 end
 
 export @concretize, @widen, @concretization, @replicable
