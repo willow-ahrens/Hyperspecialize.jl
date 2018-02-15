@@ -1,4 +1,4 @@
-module Replicables
+module SimpleReplicable
 
 using Test
 using Hyperspecialize
@@ -9,7 +9,7 @@ f(::Real) = false
 g(::Signed, ::Unsigned) = false
 h(::Signed, ::Signed, ::Unsigned) = false
 
-@testset "Replicables" begin
+@testset "Simple Replicable" begin
 
   # First, checking if the hyperspecialization works like concretization
   empty!(A)

@@ -3,8 +3,6 @@ module Hyperspecialize
 using MacroTools
 using InteractiveUtils
 
-global concretizations = Dict{Symbol, Any}()
-
 macro isdefined(var)
  quote
    try
@@ -22,6 +20,10 @@ function concretesubtypes(t)
   else
     return vcat([concretesubtypes(s) for s in subtypes(t)]...)
   end
+end
+
+function allsubtypes(t)
+  return vcat([t], [allsubtypes(s) for s in subtypes(t)]...)
 end
 
 function parse_element(base_mod, K)
