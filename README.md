@@ -10,7 +10,7 @@ Hyperspecialize is a Julia package designed to resolve method ambiguity errors b
 
 ## Problem
 
-It is best to explain the problem (and solution) by example (I will be using `+` as an example function, but similar problems can arise in the definition of `promote_rule`). Suppose Peter and his friend Jarrett have both developed eponymous modules `Peter` and `Jarrett` as follows:
+It is best to explain the problem (and solution) by example. Suppose Peter and his friend Jarrett have both developed eponymous modules `Peter` and `Jarrett` as follows:
 
 ```
 module Peter
@@ -89,25 +89,13 @@ latter approach.
 
 ## Basic Solution
 
-  Peter decided to use Hyperspecialize, and now his module looks like this:
+  Peter decided to use Hyperspecialize, and now his definition looks like this:
 
 ```
-module Peter
-  import Base.+
-
-  using Hyperspecialize
-
-  struct PeterNumber <: Number
-    x::Number
-  end
-
   @replicable Base.:+(p::PeterNumber, y::@hyperspecialize(Number)) = PeterNumber(p.x + y)
-
-  export PeterNumber
-end
 ```
 
-  This solution will define Peter's `+` method multiple times on all concrete
+  This solution will replicate this definition once for all all concrete
 subtypes of Number. This list of subtypes depends on the module load order. If
 Peter's module is loaded first, we get the following behavior:
 
@@ -128,24 +116,12 @@ PeterNumber(JarrettNumber(8.0))
   Peter doesn't like this unpredictable behavior, so he decides to explicitly
 define the load order for his types. He asks for his code to only be defined on
 the concrete subtypes of `Number` in `Base`. He uses the `@concretize` macro to
-define which subtypes of `Number` to use.  Now his module looks like this:
+define which subtypes of `Number` to use.  Now his definition looks like this:
 
 ```
-module Peter
-  import Base.+
-
-  using Hyperspecialize
-
-  struct PeterNumber <: Number
-    x::Number
-  end
-
   @concretize myNumber [BigFloat, Float16, Float32, Float64, Bool, BigInt, Int128, Int16, Int32, Int64, Int8, UInt128, UInt16, UInt32, UInt64, UInt8]
 
   @replicable Base.:+(p::PeterNumber, y::@hyperspecialize(myNumber)) = PeterNumber(p.x + y)
-
-  export PeterNumber
-end
 ```
 
   Since Peter has only defined `+` for the concrete subtypes of Number, the user
@@ -226,10 +202,12 @@ PeterNumber(JarrettNumber(8.0))
 
 # Getting Started
 
-This library provides several functions for managing the defintions that need
-to be replicated and the types they are replicated over.
+This library provides several functions for managing the defintions to
+replicate and the types they are replicated over.
 
 ## Type Tags
+
+Definitions are provided on Type Tags.
 
 ## Concretization
 
