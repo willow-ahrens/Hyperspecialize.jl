@@ -6,7 +6,7 @@
 
 [![codecov.io](http://codecov.io/github/peterahrens/Hyperspecialize.jl/coverage.svg?branch=master)](http://codecov.io/github/peterahrens/Hyperspecialize.jl?branch=master)
 
-Hyperspecialize is a Julia package designed to resolve method ambiguity errors by automating the task of redefining functions on more specific types.
+Hyperspecialize is a proud hack of a Julia package designed to resolve method ambiguity errors by automating the task of redefining functions on more specific types.
 
 ## Problem
 
@@ -205,15 +205,98 @@ PeterNumber(JarrettNumber(8.0))
 This library provides several functions for managing the defintions to
 replicate and the types they are replicated over.
 
-## Type Tags
-
-Definitions are provided on Type Tags.
-
 ## Concretization
+
+The user must enumerate the types that a definition is to replicated over. We
+use *type tags* to describe a particular set of types. The type tag arguments
+to macros are interpreted literally as symbols. The set of types is referred to
+as the *concretization*.
+
+  You may specify the concretization of a type tag using the `@concretize`
+macro like this:
+  ```
+  @concretize Tag Int
+  ```
+  You may specify more than one type:
+  ```
+  @concretize Tag (Int, Float64, Float32)
+  ```
+  If you would like to expand the concretization of a type tag, use the
+`@widen` macro.
+  ```
+  @widen Tag (BigFloat, Bool)
+  ```
+  You may query the concretization of a type tag with the `@concretization`
+macro.
+  ```
+  @concretization Tag
+  ```
+ Type tags always have module-local scope and if no module is specified, they
+are interpreted as belonging to the module in which they are expanded. You may
+use the type tag form `(mod, Tag)` to specify a module anywhere a type tag is
+an argument to a macro.
+  ```
+  @concretization(mod, Tag)
+  ```
+  If no concretization is given for a type tag `Tag` in module `mod`, the tag
+is given the default concretization corresponding to all the concrete subtypes
+of whatever the symbol `Tag` means when evaluated in `mod` (so if you are
+making up a tag name, please define a concretization for it).
+
+## Replication
+
+  The heart of the Hyperspecialize package is the `@replicable` macro, which
+promises to replicate a definition for all combinations of types in the
+concretization of type tags that appear in the definition. `@replicable` takes
+only one argument, the code to be replicated at global scope in the current
+module. To specify type tags, use the @hyperspecialize macro where the types in
+the concretization of a tag should be substituted.
+
+  Thus, the following example
+```
+module Foo
+  @concretize myTag (Int, Float32)
+  @replicable bar(x::@hyperspecialize(myTag), y::(@hyperspecialize mytag)) = x + y
+end
+```
+  will execute the following code at global scope in `Foo`.
+```
+bar(x::Int, y::Int) = x + y
+bar(x::Float32, y::Int) = x + y
+bar(x::Int, y::Float32) = x + y
+bar(x::Float32, y::Float32) = x + y
+```
+
+  If someone has loaded the `Foo` module and calls
+```
+  @widen (Foo, myTag) Float64
+```
+then the following code will execute at global scope in `Foo`.
+```
+bar(x::Int, y::Float64) = x + y
+bar(x::Float32, y::Float64) = x + y
+bar(x::Float64, y::Int) = x + y
+bar(x::Float64, y::Float32) = x + y
+```
+
+Notice that the earlier definitions are not repeated.
 
 # The Details
 
+This is an example of a module where the idea is simple and the details are not.
+
 ## Data And Precompilation
+
+  Data is stored in a `const global` dictionary named `__hyperspecialize__` in
+each module that calls `@concretize` (Note that this can happen implicitly if
+other methods are called that expect a concretization to exist already).
+
+For this reason (and to keep things simple), you cannot concretize a type tag
+in a module that is not your own.
+
+I suspect that in most cases, this approach will work with precompilation, but
+I make no guarantees and I'm not really ready to write tests for this case
+right now.
 
 ## Drawbacks
 
@@ -225,6 +308,4 @@ it is possible that type ambiguities may occur in the definition of the
 `promote_type` function.
 
 ## Avoiding Method Explosions
-
-
 
