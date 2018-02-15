@@ -10,9 +10,7 @@ Hyperspecialize is a Julia package designed to resolve method ambiguity errors b
 
 ## Problem
 
-It is best to explain the problem (and solution) by example.
-
-Now, suppose Peter and his friend Jarrett have both developed eponymous modules `Peter` and `Jarrett` as follows:
+It is best to explain the problem (and solution) by example (I will be using `+` as an example function, but similar problems can arise in the definition of `promote_rule`). Suppose Peter and his friend Jarrett have both developed eponymous modules `Peter` and `Jarrett` as follows:
 
 ```
 module Peter
