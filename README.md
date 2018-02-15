@@ -10,7 +10,7 @@ Hyperspecialize is a Julia package designed to resolve method ambiguity errors b
 
 ## Problem
 
-It is best to explain the problem (and solution) by example. Suppose Peter and his friend Jarrett have both developed eponymous modules `Peter` and `Jarrett` as follows:
+It is best to explain the problem (and solution) by example <sup>[1](#promote_type)</sup>. Suppose Peter and his friend Jarrett have both developed eponymous modules `Peter` and `Jarrett` as follows:
 
 ```
 module Peter
@@ -215,8 +215,16 @@ Definitions are provided on Type Tags.
 
 ## Data And Precompilation
 
-## When Is Hyperspecialize Right For Me?
-
 ## Drawbacks
 
+## When Is Hyperspecialize Right For Me?
+
+<a name="promote_type">1</a>: I have chosen `+` as an example function, but it
+would be possible to define promotion rules to avoid some ambiguities. However,
+it is possible that type ambiguities may occur in the definition of the
+`promote_type` function.
+
 ## Avoiding Method Explosions
+
+
+
