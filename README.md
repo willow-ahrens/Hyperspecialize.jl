@@ -89,7 +89,7 @@ definition.
   Hyperspecialize is designed to standardize and provide utilities for the
 latter approach.
 
-## Default Behavior
+## Basic Solution
 
   Peter decided to use Hyperspecialize, and now his module looks like this:
 
@@ -228,7 +228,12 @@ PeterNumber(JarrettNumber(8.0))
 
 # Getting Started
 
-#
+This library provides several functions for managing the defintions that need
+to be replicated and the types they are replicated over.
+
+## Type Tags
+
+## Concretization
 
 # The Details
 
