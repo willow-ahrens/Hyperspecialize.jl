@@ -87,7 +87,7 @@ definition.
   Hyperspecialize is designed to standardize and provide utilities for the
 latter approach.
 
-## Load-Order Dependent solution
+## Load-Order Dependent Solution
 
   Peter decided to use Hyperspecialize, and now his definition looks like this:
 
@@ -95,7 +95,7 @@ latter approach.
   @replicable Base.:+(p::PeterNumber, y::@hyperspecialize(Number)) = PeterNumber(p.x + y)
 ```
 
-  This solution will replicate this definition once for all all concrete
+  This solution will replicate this definition once for all concrete
 subtypes of `Number`. This list of subtypes depends on the module load order.
 If Peter's module is loaded first, we get the following behavior:
 
@@ -111,7 +111,7 @@ julia> friends = p + j
 PeterNumber(JarrettNumber(8.0))
 ```
 
-## Explicit behavior
+## Explicit Solution
 
   Peter doesn't like this unpredictable behavior, so he decides to explicitly
 define the load order for his types. He asks for his code to only be defined on
@@ -282,7 +282,7 @@ bar(x::Float64, y::Float32) = x + y
 
 Notice that the earlier definitions are not repeated.
 
-# The Details
+# The Fine Print
 
 This is an example of a module where the idea is simple and the details are not.
 
@@ -328,10 +328,11 @@ user's chosen dispatch rules.
 
   In short, Hyperspecialize works best when the user knows which types are
 being concretized, and when the resolution to method ambiguities is clear. A
-major benefit to using Hyperspecialize is that does not force the user to adopt
-a function-based API. If this does not describe your situation, you may be
-better off using a contextual dispatch solution like
-[Cassette](https://github.com/jrevels/Cassette.jl)
+major benefit to using Hyperspecialize is that you may keep your type-based
+API, you are not forced to adopt a function-based API. If this is not something
+that is important to you and you cannot work around difficulties involved in
+using Hyperspecialize, you will likely be better off using a contextual
+dispatch solution such as [Cassette](https://github.com/jrevels/Cassette.jl).
 
 <a name="promote_type">1</a>: I have
 chosen `+` as an example function, but it would be possible to define promotion
