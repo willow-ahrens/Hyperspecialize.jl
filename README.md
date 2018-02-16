@@ -12,7 +12,7 @@ Hyperspecialize is a proud hack of a Julia package designed to resolve method am
 
 It is best to explain the problem (and solution) by example <sup>[1](#promote_type)</sup>. Suppose Peter and his friend Jarrett have both developed eponymous modules `Peter` and `Jarrett` as follows:
 
-```
+```julia
 module Peter
   import Base.+
 
@@ -41,7 +41,7 @@ end
 Peter and Jarrett have both defined fun numeric types! However, look what
 happens when the user tries to use Peter's and Jarrett's numbers together...
 
-```
+```julia-repl
 julia> using .Peter
 
 julia> using .Jarrett
@@ -91,7 +91,7 @@ latter approach.
 
   Peter decided to use Hyperspecialize, and now his definition looks like this:
 
-```
+```julia
   @replicable Base.:+(p::PeterNumber, y::@hyperspecialize(Number)) = PeterNumber(p.x + y)
 ```
 
@@ -99,14 +99,14 @@ latter approach.
 subtypes of `Number`. This list of subtypes depends on the module load order.
 If Peter's module is loaded first, we get the following behavior:
 
-```
+```julia-repl
 julia> friends = p + j
 JarrettNumber(PeterNumber(8.0))
 ```
 
 If Jarrett's module is loaded first, we get the following behavior:
 
-```
+```julia-repl
 julia> friends = p + j
 PeterNumber(JarrettNumber(8.0))
 ```
@@ -118,7 +118,7 @@ define the load order for his types. He asks for his code to only be defined on
 the concrete subtypes of `Number` in `Base`. He uses the `@concretize` macro to
 define which subtypes of `Number` to use.  Now his definition looks like this:
 
-```
+```julia
   @concretize myNumber [BigFloat, Float16, Float32, Float64, Bool, BigInt, Int128, Int16, Int32, Int64, Int8, UInt128, UInt16, UInt32, UInt64, UInt8]
 
   @replicable Base.:+(p::PeterNumber, y::@hyperspecialize(myNumber)) = PeterNumber(p.x + y)
@@ -129,7 +129,7 @@ will need to ask for a specific definition of `+` for a type they would like to
 use. Consider what happens when Peter's package and Jarrett's package are
 loaded together.
 
-```
+```julia-repl
 julia> friends = p + j
 JarrettNumber(PeterNumber(8.0))
 
@@ -156,7 +156,7 @@ package and decides he will also use `Hyperspecialize`.
 
 Now Jarret has added
 
-```
+```julia
   @concretize myNumber [BigFloat, Float16, Float32, Float64, Bool, BigInt, Int128, Int16, Int32, Int64, Int8, UInt128, UInt16, UInt32, UInt64, UInt8]
 
   @replicable Base.:+(x::@hyperspecialize(myNumber), j::JarrettNumber) = JarrettNumber(x + j.y)
@@ -164,7 +164,7 @@ Now Jarret has added
 
 to his module, and the behavior is as follows:
 
-```
+```julia-repl
 julia> p + j
 ERROR: no promotion exists for PeterNumber and JarrettNumber
 Stacktrace:
@@ -182,7 +182,7 @@ There is now no method for adding a PeterNumber and a JarrettNumber! The user
 must ask for one explicitly using `@widen` on either Peter or Jarrett's
 `myNumber` type tag. If the user chooses to widen Jarrett's definitions, we get
 
-```
+```julia-repl
 julia> @widen (Jarrett, myNumber) PeterNumber
 Set(Type[BigInt, Bool, UInt32, Float64, Float32, Int64, Int128, Float16, PeterNumber, UInt128, UInt8, UInt16, BigFloat, Int8, UInt64, Int16, Int32])
 
@@ -192,7 +192,7 @@ JarrettNumber(PeterNumber(8.0))
 
 If the user instead chooses to widen Peter's definitions, we get
 
-```
+```julia-repl
 julia> @widen (Peter, myNumber) JarrettNumber
 Set(Type[BigInt, Bool, UInt32, Float64, Float32, Int64, Int128, Float16, UInt128, UInt8, UInt16, BigFloat, Int8, UInt64, JarrettNumber, Int16, Int32])
 
@@ -214,31 +214,31 @@ as the *concretization*.
 
   You may specify the concretization of a type tag using the `@concretize`
 macro like this:
-  ```
-  @concretize Tag Int
-  ```
-  You may specify more than one type:
-  ```
-  @concretize Tag (Int, Float64, Float32)
-  ```
-  If you would like to expand the concretization of a type tag, use the
+```julia
+@concretize Tag Int
+```
+You may specify more than one type:
+```julia
+@concretize Tag (Int, Float64, Float32)
+```
+If you would like to expand the concretization of a type tag, use the
 `@widen` macro.
-  ```
-  @widen Tag (BigFloat, Bool)
-  ```
-  You may query the concretization of a type tag with the `@concretization`
+```julia
+@widen Tag (BigFloat, Bool)
+```
+You may query the concretization of a type tag with the `@concretization`
 macro.
-  ```
-  @concretization Tag
-  ```
- Type tags always have module-local scope and if no module is specified, they
+```julia
+@concretization Tag
+```
+Type tags always have module-local scope and if no module is specified, they
 are interpreted as belonging to the module in which they are expanded. You may
 use the type tag form `(mod, Tag)` to specify a module anywhere a type tag is
 an argument to a macro.
-  ```
-  @concretization(mod, Tag)
-  ```
-  If no concretization is given for a type tag `Tag` in module `mod`, the tag
+```julia
+@concretization(mod, Tag)
+```
+If no concretization is given for a type tag `Tag` in module `mod`, the tag
 is given the default concretization corresponding to all the concrete subtypes
 of whatever the symbol `Tag` means when evaluated in `mod` (so if you are
 making up a tag name, please define a concretization for it).
@@ -253,14 +253,14 @@ module. To specify type tags, use the @hyperspecialize macro where the types in
 the concretization of a tag should be substituted.
 
   Thus, the following example
-```
+```julia
 module Foo
   @concretize myTag (Int, Float32)
   @replicable bar(x::@hyperspecialize(myTag), y::(@hyperspecialize mytag)) = x + y
 end
 ```
   will execute the following code at global scope in `Foo`.
-```
+```julia
 bar(x::Int, y::Int) = x + y
 bar(x::Float32, y::Int) = x + y
 bar(x::Int, y::Float32) = x + y
@@ -268,11 +268,12 @@ bar(x::Float32, y::Float32) = x + y
 ```
 
   If someone has loaded the `Foo` module and calls
-```
+```julia
   @widen (Foo, myTag) Float64
 ```
 then the following code will execute at global scope in `Foo`.
-```
+```julia
+bar(x::FLoat64, y::Float64) = x + y
 bar(x::Int, y::Float64) = x + y
 bar(x::Float32, y::Float64) = x + y
 bar(x::Float64, y::Int) = x + y
