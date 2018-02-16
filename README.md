@@ -75,8 +75,8 @@ In the above example, the two definitions of `+` have different behavior and
 either may be desired by the user.
 
   * The developer can write their library to run in a modifed execution
-environment like [Cassette](). This solution creates different contexts for
-multiple dispatch.
+environment like [Cassette](https://github.com/jrevels/Cassette.jl). This
+solution creates different contexts for multiple dispatch.
 
   * A single developer can define their ambiguous methods on concrete
 subtypes in `Base`, and provide utilities to extend these definitions. For
@@ -87,7 +87,7 @@ definition.
   Hyperspecialize is designed to standardize and provide utilities for the
 latter approach.
 
-## Basic Solution
+## Load-Order Dependent solution
 
   Peter decided to use Hyperspecialize, and now his definition looks like this:
 
@@ -96,8 +96,8 @@ latter approach.
 ```
 
   This solution will replicate this definition once for all all concrete
-subtypes of Number. This list of subtypes depends on the module load order. If
-Peter's module is loaded first, we get the following behavior:
+subtypes of `Number`. This list of subtypes depends on the module load order.
+If Peter's module is loaded first, we get the following behavior:
 
 ```
 julia> friends = p + j
@@ -287,8 +287,8 @@ This is an example of a module where the idea is simple and the details are not.
 
 ## Data And Precompilation
 
-  Data is stored in a `const global` dictionary named `__hyperspecialize__` in
-each module that calls `@concretize` (Note that this can happen implicitly if
+  Data is stored in `const global` dictionaries named `__hyperspecialize__` in
+every module that calls `@concretize` (Note that this can happen implicitly if
 other methods are called that expect a concretization to exist already).
 
 For this reason (and to keep things simple), you cannot concretize a type tag
@@ -298,14 +298,41 @@ I suspect that in most cases, this approach will work with precompilation, but
 I make no guarantees and I'm not really ready to write tests for this case
 right now.
 
-## Drawbacks
-
 ## When Is Hyperspecialize Right For Me?
 
-<a name="promote_type">1</a>: I have chosen `+` as an example function, but it
-would be possible to define promotion rules to avoid some ambiguities. However,
-it is possible that type ambiguities may occur in the definition of the
-`promote_type` function.
+There are three main drawbacks to the Hyperspecialize package.
 
-## Avoiding Method Explosions
+  * These macros may generate a very large number of definitions if the
+function definition includes many hyperspecialized type tags. For mathematical
+operators this can be alleviated using Julia's promotion rules, but the problem
+of how to define an unambiguous `promote_type` still stands. To further reduce
+the number of methods that are defined, in some situations it may be sufficient
+to only concretize the type tag to be a union of concrete types in Base. This
+strategy works best if it is unlikely that the method will be redefined using
+those types.
 
+  * The second drawback is that the user must manually choose desired behavior,
+so if the ambiguity is related to an internal type, the user may not know how
+to resolve it.
+
+  * The third drawback is that both methods that create an ambiguity may be
+desired by a user, and they are forced to choose one global behavior. This can
+be problematic if a different library has widened the same type tag and made
+that choice for them already. One can solve this problem by adding a parameter
+to their type that can be used by other users to select which set of rules
+should be used for dispatch. The developer would only define their functions for
+the generic value of that parameter, and provide some default value. A library
+developer could use a custom value of that parameter to avoid polluting the
+user's chosen dispatch rules.
+
+  In short, Hyperspecialize works best when the user knows which types are
+being concretized, and when the resolution to method ambiguities is clear. A
+major benefit to using Hyperspecialize is that does not force the user to adopt
+a function-based API. If this does not describe your situation, you may be
+better off using a contextual dispatch solution like
+[Cassette](https://github.com/jrevels/Cassette.jl)
+
+<a name="promote_type">1</a>: I have
+chosen `+` as an example function, but it would be possible to define promotion
+rules to avoid some ambiguities. However, it is possible that type ambiguities
+may occur in the definition of the `promote_type` function.
