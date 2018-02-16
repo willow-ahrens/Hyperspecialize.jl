@@ -243,7 +243,7 @@ is given the default concretization corresponding to all the concrete subtypes
 of whatever the symbol `Tag` means when evaluated in `mod` (so if you are
 making up a tag name, please define a concretization for it).
 
-## Replication
+## Replicable
 
   The heart of the Hyperspecialize package is the `@replicable` macro, which
 promises to replicate a definition for all combinations of types in the
