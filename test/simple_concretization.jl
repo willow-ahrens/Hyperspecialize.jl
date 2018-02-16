@@ -28,7 +28,8 @@ using Hyperspecialize
   @test @concretization(Unsigned) == Set{Type}([UInt128, UInt16, UInt32, UInt64, UInt8, Bool])
 
   # What is the concretization of a non-type without any previous calls to concretize?
-  @test @concretization(NotAType) == Set{Type}()
+  @test_throws ErrorException @concretization(NotAType)
+  @test @concretize(NotAType, []) == Set{Type}()
   # We should be able to widen the concretization of a non-type
   @test @widen(NotAType, Bool) == Set{Type}([Bool])
   @test @concretization(NotAType) == Set{Type}([Bool])
@@ -42,6 +43,8 @@ using Hyperspecialize
   @test @concretization(Int8) == Set{Type}([Bool])
 
   # Can we widen a non-existent non-concretized type?
+  @test_throws ErrorException @widen(StillNotAType, Float32)
+  @test @concretize(StillNotAType, []) == Set{Type}([])
   @test @widen(StillNotAType, Float32) == Set{Type}([Float32])
   @test @concretization(StillNotAType) == Set{Type}([Float32])
 
@@ -60,7 +63,8 @@ using Hyperspecialize
   @test @concretization(x) == Set{Type}([Int32])
   @test @concretization(Int64) == Set{Type}([Int64])
 
-  # What if we grab the concretization before we define the type?
+  # What if we set the concretization before we define the type?
+  @test @concretize(Wobble, []) == Set{Type}([])
   @test @concretization(Wobble) == Set{Type}([])
 
   # Cannot reconcretize

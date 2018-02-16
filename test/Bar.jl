@@ -6,6 +6,5 @@ using Hyperspecialize
 @concretize Float64 Set{Type}([UInt16])
 @concretize NotAType Set{Type}([UInt64])
 @concretize Float32 Set{Type}([UInt128])
-@concretization Wobble
 
 end #module

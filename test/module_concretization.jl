@@ -8,14 +8,13 @@ using Hyperspecialize
   # Let's concretize a couple things, then load a module and see what happens
   @test (@concretize NotAType [Int32]) == Set{Type}([Int32])
   @test (@concretize Float32 [Float64]) == Set{Type}([Float64])
+  @test (@concretize AlsoNotAType []) == Set{Type}([])
   @test (@widen AlsoNotAType Int32) == Set{Type}([Int32])
   @test (@widen Float64 (Float32)) == Set{Type}([Float32, Float64])
   @test (@concretization NotAType) == Set{Type}([Int32])
   @test (@concretization Float32) == Set{Type}([Float64])
   @test (@concretization AlsoNotAType) == Set{Type}([Int32])
   @test (@concretization Float64) == Set{Type}([Float32, Float64])
-
-  @test (@concretization(Wobble) == Set{Type}([]))
 
 end
 
@@ -39,10 +38,6 @@ import Foo
   @test_throws ErrorException @concretization((Foo, NotAType)) == true
   @test_throws ErrorException @concretization (foo, Float32)
   @test_throws ErrorException (@concretize (foo, Float32) Int64)
-
-  # Default concretizations are load-order dependent
-  @test (@concretization((foo, Wobble)) == Set{Type}([Foo.Wobble]))
-  @test ((@concretization (bar, Wobble)) == Set{Type}([]))
 
   # Let's make sure that changes to modules are module-local
   @test @widen((Foo.Bar, NotAType), Bool) == Set{Type}([UInt64, Bool])

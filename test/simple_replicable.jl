@@ -22,6 +22,8 @@ h(::Signed, ::Signed, ::Unsigned) = false
 
   empty!(A)
 
+  @concretize NotAType []
+
   @replicable begin
     push!(A, @hyperspecialize NotAType)
   end
