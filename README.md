@@ -319,12 +319,7 @@ to resolve it.
   * The third drawback is that both methods that create an ambiguity may be
 desired by a user, and they are forced to choose one global behavior. This can
 be problematic if a different library has widened the same type tag and made
-that choice for them already. One can solve this problem by adding a parameter
-to their type that can be used by other users to select which set of rules
-should be used for dispatch. The developer would only define their functions for
-the generic value of that parameter, and provide some default value. A library
-developer could use a custom value of that parameter to avoid polluting the
-user's chosen dispatch rules.
+that choice for them already.
 
   In short, Hyperspecialize works best when the user knows which types are
 being concretized, and when the resolution to method ambiguities is clear. A

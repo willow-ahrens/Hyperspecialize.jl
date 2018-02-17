@@ -126,7 +126,7 @@ function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::S
       end)
     end
     if haskey(target_mod.__hyperspecialize__, key)
-      error("cannot reconcretize \"$key\" in module \"$target_mod\" (TODO)")
+      error("cannot reconcretize \"$key\" in module \"$target_mod\"")
     else
       target_mod.__hyperspecialize__[key] = Tag(types, [])
     end
