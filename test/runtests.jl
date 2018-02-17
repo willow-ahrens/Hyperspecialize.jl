@@ -10,3 +10,4 @@ end
 include("simple_concretization.jl")
 include("module_concretization.jl")
 include("simple_replicable.jl")
+include("module_replicable.jl")
