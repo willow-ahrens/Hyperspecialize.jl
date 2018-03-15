@@ -61,8 +61,9 @@ Possible fix, define
 ```
 
 Oh no! Since a `PeterNumber` is a `Number` and a `JarrettNumber` is a `Number`,
-when we try to add the two kinds of numbers it looks as if both `+` methods
-will apply, and neither is more specific.
+both `+` methods are applicable, and neither method is more specific. Julia has
+no way to decide which method to use, and asks the user to decide by defining a
+more specific method.
 
 There is a question of what role developers should play in the resolution of
 this ambiguity.
@@ -78,11 +79,11 @@ either may be desired by the user.
 environment like [Cassette](https://github.com/jrevels/Cassette.jl). This
 solution creates different contexts for multiple dispatch.
 
-  * A single developer can define their ambiguous methods on concrete
+  * A single developer can define their ambiguous methods only on concrete
 subtypes in `Base`, and provide utilities to extend these definitions. For
 example, Peter could define `+` on all concrete subtypes of `Number` in Base.
-`+` would default to Jarrett's definition unless the user asks for Peter's
-definition.
+In cases of ambiguity, `+` would then default to Jarrett's definition unless
+the user asks for Peter's definition.
 
   Hyperspecialize is designed to standardize and provide utilities for the
 latter approach.
