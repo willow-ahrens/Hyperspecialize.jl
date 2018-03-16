@@ -1,5 +1,7 @@
-using Test
+import Compat
+
 using Hyperspecialize
+using Compat.Test
 push!(LOAD_PATH, ".")
 
 @testset "Simple Concretization Pregame" begin

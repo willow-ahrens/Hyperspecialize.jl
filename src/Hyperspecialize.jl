@@ -1,7 +1,9 @@
+import Compat
+
 module Hyperspecialize
 
 using MacroTools
-using InteractiveUtils
+using Compat.InteractiveUtils
 
 macro isdefined(var)
  quote
@@ -163,8 +165,8 @@ Set(Type[Int32, Int64])
 ```
 """
 macro concretize(K, T)
-  (M, K) = parse_element(__module__, K)
-  return :(_concretize($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
+  (M, K) = parse_element(Compat.@__MODULE__, K)
+  return :(_concretize($(esc(Compat.@__MODULE__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
 end
 
 function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Type)
@@ -216,8 +218,8 @@ Set(Type[Bool, Int8, Int32, Int64, UInt128])
 ```
 """
 macro widen(K, T)
-  (M, K) = parse_element(__module__, K)
-  return :(_widen($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
+  (M, K) = parse_element(Compat.@__MODULE__, K)
+  return :(_widen($(esc(Compat.@__MODULE__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
 end
 
 function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
@@ -264,8 +266,8 @@ ERROR: Cannot create default concretization from type tag (Main, NotDefinedHere)
 ```
 """
 macro concretization(K)
-  (M, K) = parse_element(__module__, K)
-  return :(_concretization($(esc(__module__)), $(esc(M)), $(QuoteNode(K))))
+  (M, K) = parse_element(Compat.@__MODULE__, K)
+  return :(_concretization($(esc(Compat.@__MODULE__)), $(esc(M)), $(QuoteNode(K))))
 end
 
 _define(r::Replicable) = _define(r.E, r)
@@ -353,7 +355,7 @@ macro replicable(E)
   count = 0
   E = MacroTools.postwalk(X -> begin
     if @capture(X, @hyperspecialize(K_))
-      (M, K) = parse_element(__module__, K)
+      (M, K) = parse_element(Compat.@__MODULE__, K)
       push!(elements, :(($(esc(M)), $(QuoteNode(K)))))
       count += 1
       :(@hyperspecialize($count))
@@ -361,7 +363,7 @@ macro replicable(E)
       X
     end
   end, E)
-  return :(_replicable($(esc(__module__)), $(QuoteNode(E)), $(elements...)))
+  return :(_replicable($(esc(Compat.@__MODULE__)), $(QuoteNode(E)), $(elements...)))
 end
 
 export @concretize, @widen, @concretization, @replicable
