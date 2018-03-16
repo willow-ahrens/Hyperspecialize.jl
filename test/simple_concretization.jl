@@ -36,8 +36,8 @@ using Hyperspecialize
   @test @concretization(NotAType) == Set{Type}([Bool])
 
   # What happens if we widen a non-concretized type?
-  @test @widen(Signed, Bool) == Set{Type}([Hyperspecialize.concretesubtypes(Signed)..., Bool])
-  @test @concretization(Signed) == Set{Type}([Hyperspecialize.concretesubtypes(Signed)..., Bool])
+  @test @widen(Signed, Bool) == Set{Type}([BigInt, Int128, Int16, Int32, Int64, Int8, Bool])
+  @test @concretization(Signed) == Set{Type}([BigInt, Int128, Int16, Int32, Int64, Int8, Bool])
 
   # Can we concretize a concrete type to be something else?
   @test @concretize(Int8, Bool) == Set{Type}([Bool])
