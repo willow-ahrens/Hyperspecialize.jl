@@ -1,7 +1,6 @@
-import Compat
-
 module Hyperspecialize
 
+import Compat
 using MacroTools
 using Compat.InteractiveUtils
 
@@ -44,7 +43,7 @@ julia> Hyperspecialize.concretesubtypes(Real)
 ```
 """
 function concretesubtypes(t)
-  if isconcretetype(t)
+  if Compat.isconcretetype(t)
     return [t]
   else
     return vcat([concretesubtypes(s) for s in subtypes(t)]...)
