@@ -1,7 +1,6 @@
 module ModuleConcretization
 
-import Compat
-using Compat.Test
+using Test
 using Hyperspecialize
 
 @testset "Module Concretization" begin
