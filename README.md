@@ -6,7 +6,7 @@
 
 [![codecov.io](http://codecov.io/github/peterahrens/Hyperspecialize.jl/coverage.svg?branch=master)](http://codecov.io/github/peterahrens/Hyperspecialize.jl?branch=master)
 
-Hyperspecialize is a proud hack of a Julia package designed to resolve method ambiguity errors by automating the task of redefining functions on more specific types.
+Hyperspecialize is a proud hack of a Julia package designed to resolve method ambiguity errors by automating the task of redefining functions on more specific types. Since Julia 0.7 is required, the formal initial release is planned for after the release of Julia 0.7.
 
 ## Problem
 
