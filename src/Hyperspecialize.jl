@@ -121,7 +121,7 @@ end
 function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::Set{Type})
   if base_mod == target_mod
     if !isdefined(base_mod, :__hyperspecialize__)
-      eval(base_mod, quote
+      Core.eval(base_mod, quote
         const global __hyperspecialize__ = Dict{Symbol, Any}()
       end)
     end
@@ -223,8 +223,8 @@ end
 function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
   if !isdefined(target_mod, :__hyperspecialize__) || !haskey(target_mod.__hyperspecialize__, key)
     if isdefined(target_mod, key)
-      if eval(target_mod, key) isa Type
-        types = concretesubtypes(eval(target_mod, key))
+      if Core.eval(target_mod, key) isa Type
+        types = concretesubtypes(Core.eval(target_mod, key))
       else
         error("Cannot create default concretization from type tag ($target_mod, $key): Not a type.")
       end
@@ -295,7 +295,7 @@ function _define(E, r::Replicable)
     end
   else
     if !(E in r.defined)
-      eval(r.def_mod, E)
+      Core.eval(r.def_mod, E)
       push!(r.defined, E)
     end
   end
