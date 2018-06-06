@@ -1,7 +1,6 @@
 module SimpleReplicable
 
-import Compat
-using Compat.Test
+using Test
 using Hyperspecialize
 
 global A = Set{Type}([])

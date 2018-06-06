@@ -5,8 +5,7 @@ end
 
 module SimpleConcretization
 
-import Compat
-using Compat.Test
+using Test
 using Hyperspecialize
 
 

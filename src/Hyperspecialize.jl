@@ -1,8 +1,7 @@
 module Hyperspecialize
 
-import Compat
 using MacroTools
-using Compat.InteractiveUtils
+using InteractiveUtils
 
 macro isdefined(var)
  quote
@@ -43,7 +42,7 @@ julia> Hyperspecialize.concretesubtypes(Real)
 ```
 """
 function concretesubtypes(t)
-  if Compat.isconcretetype(t)
+  if isconcretetype(t)
     return [t]
   else
     return vcat([concretesubtypes(s) for s in subtypes(t)]...)
@@ -91,7 +90,7 @@ end
 
 function parse_element(base_mod, K)
   if @capture(K, (L_, R_))
-    M = esc(L)
+    M = L
     K = R
   else
     M = base_mod
@@ -164,8 +163,8 @@ Set(Type[Int32, Int64])
 ```
 """
 macro concretize(K, T)
-  (M, K) = parse_element(:(Compat.@__MODULE__), K)
-  return :(_concretize(Compat.@__MODULE__, $(M), $(QuoteNode(K)), $(esc(T))))
+  (M, K) = parse_element(__module__, K)
+  return :(_concretize($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
 end
 
 function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Type)
@@ -217,8 +216,8 @@ Set(Type[Bool, Int8, Int32, Int64, UInt128])
 ```
 """
 macro widen(K, T)
-  (M, K) = parse_element(:(Compat.@__MODULE__), K)
-  return :(_widen(Compat.@__MODULE__, $(M), $(QuoteNode(K)), $(esc(T))))
+  (M, K) = parse_element(__module__, K)
+  return :(_widen($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
 end
 
 function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
@@ -265,8 +264,8 @@ ERROR: Cannot create default concretization from type tag (Main, NotDefinedHere)
 ```
 """
 macro concretization(K)
-  (M, K) = parse_element(:(Compat.@__MODULE__), K)
-  return :(_concretization(Compat.@__MODULE__, $(M), $(QuoteNode(K))))
+  (M, K) = parse_element(__module__, K)
+  return :(_concretization($(esc(__module__)), $(esc(M)), $(QuoteNode(K))))
 end
 
 _define(r::Replicable) = _define(r.E, r)
@@ -354,15 +353,15 @@ macro replicable(E)
   count = 0
   E = MacroTools.postwalk(X -> begin
     if @capture(X, @hyperspecialize(K_))
-      (M, K) = parse_element(:(Compat.@__MODULE__), K)
-      push!(elements, :(($(M), $(QuoteNode(K)))))
+      (M, K) = parse_element(__module__, K)
+      push!(elements, :(($(esc(M)), $(QuoteNode(K)))))
       count += 1
       :(@hyperspecialize($count))
     else
       X
     end
   end, E)
-  return :(_replicable(Compat.@__MODULE__, $(QuoteNode(E)), $(elements...)))
+  return :(_replicable($(esc(__module__)), $(QuoteNode(E)), $(elements...)))
 end
 
 export @concretize, @widen, @concretization, @replicable
