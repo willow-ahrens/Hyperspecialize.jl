@@ -2,6 +2,9 @@ module Hyperspecialize
 
 using MacroTools
 using InteractiveUtils
+using Core.eval
+
+export @concretize, @widen, @concretization, @replicable
 
 macro isdefined(var)
  quote
@@ -363,7 +366,5 @@ macro replicable(E)
   end, E)
   return :(_replicable($(esc(__module__)), $(QuoteNode(E)), $(elements...)))
 end
-
-export @concretize, @widen, @concretization, @replicable
 
 end # module
