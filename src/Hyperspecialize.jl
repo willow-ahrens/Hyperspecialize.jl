@@ -2,7 +2,6 @@ module Hyperspecialize
 
 using MacroTools
 using InteractiveUtils
-using Core.eval
 
 export @concretize, @widen, @concretization, @replicable
 
@@ -271,6 +270,18 @@ macro concretization(K)
   return :(_concretization($(esc(__module__)), $(esc(M)), $(QuoteNode(K))))
 end
 
+_is_hyperspecialize(X) = false
+function _is_hyperspecialize(X::Expr)
+  return X.head == :macrocall &&
+    length(X.args) == 3 &&
+    X.args[1] == Symbol("@hyperspecialize")
+end
+
+function _get_hyperspecialize(X)
+  @assert _is_hyperspecialize(X)
+  return X.args[3]
+end
+
 _define(r::Replicable) = _define(r.E, r)
 
 function _define(E, r::Replicable)
@@ -278,8 +289,8 @@ function _define(E, r::Replicable)
   target_mod = nothing
   key = nothing
   MacroTools.postwalk(X -> begin
-    if @capture(X, @hyperspecialize(I_)) && !found
-      (target_mod, key) = r.elements[I]
+    if _is_hyperspecialize(X) && !found
+      (target_mod, key) = r.elements[_get_hyperspecialize(X)]
       found = true
     end
     X
@@ -288,7 +299,7 @@ function _define(E, r::Replicable)
     for typ in _concretization(r.def_mod, target_mod, key)
       found = false
       _define(MacroTools.postwalk(X -> begin
-        if @capture(X, @hyperspecialize(_)) && !found
+        if _is_hyperspecialize(X) && !found
           found = true
           typ
         else
@@ -355,8 +366,8 @@ macro replicable(E)
   elements = []
   count = 0
   E = MacroTools.postwalk(X -> begin
-    if @capture(X, @hyperspecialize(K_))
-      (M, K) = parse_element(__module__, K)
+    if _is_hyperspecialize(X)
+      (M, K) = parse_element(__module__, _get_hyperspecialize(X))
       push!(elements, :(($(esc(M)), $(QuoteNode(K)))))
       count += 1
       :(@hyperspecialize($count))
