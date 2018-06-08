@@ -1,9 +1,11 @@
 module Hyperspecialize
 
-using MacroTools
 using InteractiveUtils
 
 export @concretize, @widen, @concretization, @replicable
+
+postwalk(f, x) = f(x)
+postwalk(f, x::Expr) = f(Expr(x.head, map(arg->postwalk(f, arg), x.args)...))
 
 macro isdefined(var)
  quote
@@ -91,9 +93,8 @@ function allsubtypes(t)
 end
 
 function parse_element(base_mod, K)
-  if @capture(K, (L_, R_))
-    M = L
-    K = R
+  if K isa Expr && K.head == :tuple
+    (M, K) = K.args
   else
     M = base_mod
   end
@@ -288,7 +289,7 @@ function _define(E, r::Replicable)
   found = false
   target_mod = nothing
   key = nothing
-  MacroTools.postwalk(X -> begin
+  postwalk(X -> begin
     if _is_hyperspecialize(X) && !found
       (target_mod, key) = r.elements[_get_hyperspecialize(X)]
       found = true
@@ -298,7 +299,7 @@ function _define(E, r::Replicable)
   if found
     for typ in _concretization(r.def_mod, target_mod, key)
       found = false
-      _define(MacroTools.postwalk(X -> begin
+      _define(postwalk(X -> begin
         if _is_hyperspecialize(X) && !found
           found = true
           typ
@@ -365,7 +366,7 @@ Set(Type[Bool, Int32, Int64])
 macro replicable(E)
   elements = []
   count = 0
-  E = MacroTools.postwalk(X -> begin
+  E = postwalk(X -> begin
     if _is_hyperspecialize(X)
       (M, K) = parse_element(__module__, _get_hyperspecialize(X))
       push!(elements, :(($(esc(M)), $(QuoteNode(K)))))
