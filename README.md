@@ -1,11 +1,8 @@
 # Hyperspecialize
 
 [![Travis](https://travis-ci.org/peterahrens/Hyperspecialize.jl.svg?branch=master)](https://travis-ci.org/peterahrens/Hyperspecialize.jl)
-
 [![AppVeyor](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/project/peterahrens/hyperspecialize-jl/branch/master)
-
 [![Coveralls](https://coveralls.io/repos/peterahrens/Hyperspecialize.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/peterahrens/Hyperspecialize.jl?branch=master)
-
 [![Codecov](http://codecov.io/github/peterahrens/Hyperspecialize.jl/coverage.svg?branch=master)](http://codecov.io/github/peterahrens/Hyperspecialize.jl?branch=master)
 
 Hyperspecialize is a proud hack of a Julia package designed to resolve method ambiguity errors by automating the task of redefining functions on more specific types. Since Julia 0.7 is required, a formal initial release is planned after the release of Julia 0.7.
