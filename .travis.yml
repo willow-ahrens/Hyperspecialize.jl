@@ -15,6 +15,9 @@ git:
 ## (tests will run but not make your overall status red)
 matrix:
   allow_failures:
+    os:
+      - linux
+      - osx
     julia:
       - nightly
 
