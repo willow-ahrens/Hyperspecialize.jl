@@ -2,7 +2,7 @@
 
 [![Travis](https://travis-ci.org/peterahrens/Hyperspecialize.jl.svg?branch=master)](https://travis-ci.org/peterahrens/Hyperspecialize.jl)
 
-[![AppVeyor](https://ci.appveyor.com/project/myaccount/myproject/branch/master)](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)
+[![AppVeyor](https://ci.appveyor.com/api/projects/status/32r7s2skrgm9ubva/branch/master?svg=true)](https://ci.appveyor.com/project/myaccount/myproject/branch/master)
 
 [![Coveralls](https://coveralls.io/repos/peterahrens/Hyperspecialize.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/peterahrens/Hyperspecialize.jl?branch=master)
 
