@@ -1,6 +1,5 @@
 module Hyperspecialize
 
-using MacroTools
 using InteractiveUtils
 
 export @concretize, @widen, @concretization, @replicable
