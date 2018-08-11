@@ -295,10 +295,6 @@ other methods are called that expect a concretization to exist already).
 For this reason (and to keep things simple), you cannot concretize a type tag
 in a module that is not your own.
 
-I suspect that in most cases, this approach will work with precompilation, but
-I make no guarantees and I'm not really ready to write tests for this case
-right now.
-
 ## When Is Hyperspecialize Right For Me?
 
 There are three main drawbacks to the Hyperspecialize package.
