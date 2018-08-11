@@ -1,5 +1,3 @@
-using Pkg
-Pkg.add("Test")
 using Test
 using Hyperspecialize
 push!(LOAD_PATH, ".")

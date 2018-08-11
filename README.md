@@ -295,6 +295,11 @@ other methods are called that expect a concretization to exist already).
 For this reason (and to keep things simple), you cannot concretize a type tag
 in a module that is not your own.
 
+  Since this package works by calling "eval" on different modules to widen
+types, if you want to call `@widen` on a type key in another module, you must
+do so from the `__init__()` function in your module. See the documentation on
+`__init__()`.
+
 ## When Is Hyperspecialize Right For Me?
 
 There are three main drawbacks to the Hyperspecialize package.
