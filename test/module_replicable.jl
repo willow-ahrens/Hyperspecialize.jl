@@ -29,7 +29,7 @@ Qux.h(::Weeble, ::Real) = true
   @test !Qux.f(1.0)
 
   @widen TypicalTag Int
-  @widen (Qux, TypicalTag) Float64
+  @widen Qux.TypicalTag Float64
 
   @test f(1)
   @test !f(1.0)

@@ -233,10 +233,10 @@ macro.
 ```
 Type tags always have module-local scope and if no module is specified, they
 are interpreted as belonging to the module in which they are expanded. You may
-use the type tag form `(mod, Tag)` to specify a module anywhere a type tag is
+use the type tag form `mod.Tag` to specify a module anywhere a type tag is
 an argument to a macro.
 ```julia
-@concretization(mod, Tag)
+@concretization(mod.Tag)
 ```
 If no concretization is given for a type tag `Tag` in module `mod`, the tag
 is given the default concretization corresponding to all the concrete subtypes
@@ -269,7 +269,7 @@ bar(x::Float32, y::Float32) = x + y
 
   If someone has loaded the `Foo` module and calls
 ```julia
-  @widen (Foo, myTag) Float64
+  @widen Foo.myTag Float64
 ```
 then the following code will execute at global scope in `Foo`.
 ```julia

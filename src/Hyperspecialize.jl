@@ -92,11 +92,12 @@ function allsubtypes(t)
   return vcat([t], [allsubtypes(s) for s in subtypes(t)]...)
 end
 
-function parse_element(base_mod, K)
-  if K isa Expr && K.head == :tuple
-    (M, K) = K.args
+function parse_element(base_mod, T)
+  if T isa Expr && T.head == :. && length(T.args) == 2
+    (M, K) = T.args
   else
     M = base_mod
+    K = QuoteNode(T)
   end
   return (M, K)
 end
@@ -142,32 +143,32 @@ end
 """
     @concretize(tag, ts)
 
-Define the set of types corresponding to a type tag as `ts`, where `ts`
-is either a single type or any collection that may be passed to a set
-constructor. A type tag is a pair `(mod, Tag)` where the mod specifies a module
-and the `Tag` is interpreted literally as a symbol. If just the `Tag` is given,
-then the module is assumed to be the module in which the macro was expanded.
+Define the set of types corresponding to a type tag as `ts`, where `ts` is
+either a single type or any collection that may be passed to a set constructor.
+A type tag is a module-qualified symbol `mod.:Key` where mod specifies a module
+and `:Key` is a symbol.  If just the `:Key` is given, then the module is
+assumed to be the module in which the macro was expanded.
 
 Note that you may not concretize a type in another module.
 
 # Examples
 ```julia-repl
-julia> @concretize (Main, BestInts) [Int32, Int64]
+julia> @concretize Main.:BestInts [Int32, Int64]
 Set(Type[Int32, Int64])
 
-julia> @concretize BestFloats Float64
+julia> @concretize :BestFloats Float64
 Set(Type[Float64])
 
-julia> @concretize BestStrings (String,)
+julia> @concretize :BestStrings (String,)
 Set(Type[String])
 
-julia> @concretization BestInts
+julia> @concretization :BestInts
 Set(Type[Int32, Int64])
 ```
 """
 macro concretize(K, T)
   (M, K) = parse_element(__module__, K)
-  return :(_concretize($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
+  return :(_concretize($(esc(__module__)), $(esc(M)), $(K), $(esc(T))))
 end
 
 function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Type)
@@ -190,11 +191,11 @@ end
 
 Expand the set of types corresponding to a type tag to include `ts`, where `ts`
 is either a single type or any collection that may be passed to a set
-constructor. A type tag is a pair `(mod, Tag)` where the mod specifies a module
-and the `Tag` is interpreted literally as a symbol. If just the `Tag` is given,
-then the module is assumed to be the module in which the macro was expanded.
-If no concretization exists, create a default concretization consisting of the
-conrete subtypes of whatever type shares the name of `Tag` at load time.
+constructor.  A type tag is a module-qualified symbol `mod.:Key` where mod
+specifies a module and `:Key` is a symbol.  If just the `:Key` is given, then
+the module is assumed to be the module in which the macro was expanded.  If no
+concretization exists, create a default concretization consisting of the
+conrete subtypes of whatever type shares the name of `Key` at load time.
 
 If `@widen` is called for a type tag which has been referenced by a
 `@replicable` code block, then that code block will be replicated even more to
@@ -220,7 +221,7 @@ Set(Type[Bool, Int8, Int32, Int64, UInt128])
 """
 macro widen(K, T)
   (M, K) = parse_element(__module__, K)
-  return :(_widen($(esc(__module__)), $(esc(M)), $(QuoteNode(K)), $(esc(T))))
+  return :(_widen($(esc(__module__)), $(esc(M)), $(K), $(esc(T))))
 end
 
 function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
@@ -229,10 +230,10 @@ function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
       if Core.eval(target_mod, key) isa Type
         types = concretesubtypes(Core.eval(target_mod, key))
       else
-        error("Cannot create default concretization from type tag ($target_mod, $key): Not a type.")
+        error("cannot create default concretization from type tag $target_mod.$key: not a type")
       end
     else
-      error("Cannot create default concretization from type tag ($target_mod, $key): Not defined.")
+      error("cannot create default concretization from type tag $target_mod.$key: not defined")
     end
     _concretize(base_mod, target_mod, key, types)
   end
@@ -242,18 +243,18 @@ end
 """
     @concretization(tag)
 
-Return the set of types corresponding to a type tag. A type tag is a
-pair `(mod, Tag)` where the mod specifies a module and the `Tag` is interpreted
-literally as a symbol. If just the `Tag` is given, then the module is assumed to
-be the module in which the macro was expanded. If no concretization
-exists, create a default concretization consisting of the conrete subtypes of
-whatever type shares the name of `Tag` at load time.
+Return the set of types corresponding to a type tag.  A type tag is a
+module-qualified symbol `mod.:Key` where mod specifies a module and `:Key` is a
+symbol.  If just the `:Key` is given, then the module is assumed to be the
+module in which the macro was expanded.  If no concretization exists, return
+the default concretization that would be created, if necessary, from the
+conrete subtypes of whatever type shares the name of `Key` at load time.
 
 A concretization can be set and modified with `@concretize` and `@widen`
 
 # Examples
 ```julia-repl
-julia> @concretization((Main, Real))
+julia> @concretization(Main.Real)
 Set(Type[BigInt, Bool, UInt32, Float64, Float32, Int64, Int128, Float16, UInt128, UInt8, UInt16, BigFloat, Int8, UInt64, Int16, Int32])
 
 julia> @concretize BestInts [Int32, Int64]
@@ -263,12 +264,12 @@ julia> @concretization BestInts
 Set(Type[Int32, Int64])
 
 julia> @concretization NotDefinedHere
-ERROR: Cannot create default concretization from type tag (Main, NotDefinedHere): Not defined.
+ERROR: cannot create default concretization from type tag Main.NotDefinedHere: not defined.
 ```
 """
 macro concretization(K)
   (M, K) = parse_element(__module__, K)
-  return :(_concretization($(esc(__module__)), $(esc(M)), $(QuoteNode(K))))
+  return :(_concretization($(esc(__module__)), $(esc(M)), $(K)))
 end
 
 _is_hyperspecialize(X) = false
@@ -330,14 +331,13 @@ end
 
 Replicate the code in `block` where each tag referred to by
 `@hyperspecialize(tag)` is replaced by an element in the concretization of
-`tag`. `block` is replicated at global scope in the module where `@replicable`
+`tag`.  `block` is replicated at global scope in the module where `@replicable`
 was expanded once for each combination of types in the concretization of each
-`tag`.  A type tag is a pair `(mod, Tag)` where the mod specifies a module and
-the `Tag` is interpreted literally as a symbol.  If just the `Tag` is given,
-then the module is assumed to be the module in which the macro was expanded.
-If no concretization exists for a tag, create a default concretization
-consisting of the conrete subtypes of whatever type shares the name of `Tag` at
-load time.
+`tag`.  A type tag is a module-qualified symbol `mod.:Key` where mod specifies
+a module and `:Key` is a symbol.  If just the `:Key` is given, then the module
+is assumed to be the module in which the macro was expanded.  If no
+concretization exists for a tag, create a default concretization consisting of
+the conrete subtypes of whatever type shares the name of `Key` at load time.
 
 If `@widen` is called for a type tag which has been referenced by a
 `@replicable` code block, then that code block will be replicated even more to
@@ -369,7 +369,7 @@ macro replicable(E)
   E = postwalk(X -> begin
     if _is_hyperspecialize(X)
       (M, K) = parse_element(__module__, _get_hyperspecialize(X))
-      push!(elements, :(($(esc(M)), $(QuoteNode(K)))))
+      push!(elements, :(($(esc(M)), $(K))))
       count += 1
       :(@hyperspecialize($count))
     else
