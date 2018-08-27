@@ -1,11 +1,19 @@
 module Hyperspecialize
 
+
+
 using InteractiveUtils
 
-export @concretize, @widen, @concretization, @replicable
+
+
+export @concretize, @concretization, @widen, @replicable
+
+
 
 postwalk(f, x) = f(x)
 postwalk(f, x::Expr) = f(Expr(x.head, map(arg->postwalk(f, arg), x.args)...))
+
+
 
 macro isdefined(var)
  quote
@@ -17,6 +25,8 @@ macro isdefined(var)
    end
  end
 end
+
+
 
 """
     concretesubtypes(t)
@@ -52,6 +62,8 @@ function concretesubtypes(t)
     return vcat([concretesubtypes(s) for s in subtypes(t)]...)
   end
 end
+
+
 
 """
     allsubtypes(t)
@@ -92,6 +104,8 @@ function allsubtypes(t)
   return vcat([t], [allsubtypes(s) for s in subtypes(t)]...)
 end
 
+
+
 function parse_element(base_mod, T)
   if T isa Expr && T.head == :. && length(T.args) == 2
     (M, K) = T.args
@@ -101,6 +115,8 @@ function parse_element(base_mod, T)
   end
   return (M, K)
 end
+
+
 
 struct Replicable
   def_mod::Module
@@ -113,6 +129,8 @@ struct Tag
   concretization::Set{Type}
   replicables::Vector{Replicable}
 end
+
+
 
 function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::Type)
   return _concretize(base_mod, target_mod, key, [types])
@@ -153,16 +171,16 @@ Note that you may not concretize a type in another module.
 
 # Examples
 ```julia-repl
-julia> @concretize Main.:BestInts [Int32, Int64]
+julia> @concretize Main.BestInts [Int32, Int64]
 Set(Type[Int32, Int64])
 
-julia> @concretize :BestFloats Float64
+julia> @concretize BestFloats Float64
 Set(Type[Float64])
 
-julia> @concretize :BestStrings (String,)
+julia> @concretize BestStrings (String,)
 Set(Type[String])
 
-julia> @concretization :BestInts
+julia> @concretization BestInts
 Set(Type[Int32, Int64])
 ```
 """
@@ -170,6 +188,96 @@ macro concretize(K, T)
   (M, K) = parse_element(__module__, K)
   return :(_concretize($(esc(__module__)), $(esc(M)), $(K), $(esc(T))))
 end
+
+
+
+function _concretize(base_mod::Module, target_mod::Module, key::Symbol)
+  if _concretization(base_mod, target_mod, key) == nothing
+    if isdefined(target_mod, key)
+      if Core.eval(target_mod, key) isa Type
+        _concretize(base_mod, target_mod, key, concretesubtypes(Core.eval(target_mod, key)))
+      else
+        error("cannot create default concretization from type tag $target_mod.$key: not a type")
+      end
+    else
+      error("cannot create default concretization from type tag $target_mod.$key: not defined")
+    end
+  end
+  return _concretization(base_mod, target_mod, key)
+end
+
+"""
+    @concretize(tag)
+
+If no concretization exists, define the set of types corresponding to `tag` as
+the conrete subtypes of whatever type shares the name of `Key` at load time.
+`tag` is a type tag, or a module-qualified symbol `mod.:Key` where mod
+specifies a module and `:Key` is a symbol.  If just the `:Key` is given, then
+the module is assumed to be the module in which the macro was expanded.
+
+Note that you may not concretize a tag in another module.
+
+# Examples
+```julia-repl
+julia> @concretization(Main.Real)
+nothing
+
+julia> @concretize(Main.Real)
+Set(Type[BigInt, Bool, UInt32, Float64, Float32, Int64, Int128, Float16, UInt128, UInt8, UInt16, BigFloat, Int8, UInt64, Int16, Int32])
+
+julia> @concretize BestInts [Int32, Int64]
+Set(Type[Int32, Int64])
+
+julia> @concretization BestInts
+Set(Type[Int32, Int64])
+
+julia> @concretize NotDefinedHere
+ERROR: cannot create default concretization from type tag Main.NotDefinedHere: not defined.
+```
+"""
+macro concretize(K)
+  (M, K) = parse_element(__module__, K)
+  return :(_concretize($(esc(__module__)), $(esc(M)), $(K)))
+end
+
+
+
+function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
+  if !isdefined(target_mod, :__hyperspecialize__) || !haskey(target_mod.__hyperspecialize__, key)
+    return nothing
+  end
+  return Set{Type}(target_mod.__hyperspecialize__[key].concretization)
+end
+
+"""
+    @concretization(tag)
+
+Return the set of types corresponding to a type tag.  A type tag is a
+module-qualified symbol `mod.:Key` where mod specifies a module and `:Key` is a
+symbol.  If just the `:Key` is given, then the module is assumed to be the
+module in which the macro was expanded.  If no concretization exists, return
+nothing.
+
+A concretization can be set and modified with `@concretize` and `@widen`
+
+# Examples
+```julia-repl
+julia> @concretization(BestInts)
+nothing
+
+julia> @concretize BestInts [Int32, Int64]
+Set(Type[Int32, Int64])
+
+julia> @concretization BestInts
+Set(Type[Int32, Int64])
+```
+"""
+macro concretization(K)
+  (M, K) = parse_element(__module__, K)
+  return :(_concretization($(esc(__module__)), $(esc(M)), $(K)))
+end
+
+
 
 function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Type)
   return _widen(base_mod, target_mod, key, [types])
@@ -180,7 +288,7 @@ function _widen(base_mod::Module, target_mod::Module, key::Symbol, types)
 end
 
 function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Set{Type})
-  _concretization(base_mod, target_mod, key)
+  _concretize(base_mod, target_mod, key)
   union!(target_mod.__hyperspecialize__[key].concretization, types)
   map(_define, target_mod.__hyperspecialize__[key].replicables)
   return Set{Type}(target_mod.__hyperspecialize__[key].concretization)
@@ -224,53 +332,7 @@ macro widen(K, T)
   return :(_widen($(esc(__module__)), $(esc(M)), $(K), $(esc(T))))
 end
 
-function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
-  if !isdefined(target_mod, :__hyperspecialize__) || !haskey(target_mod.__hyperspecialize__, key)
-    if isdefined(target_mod, key)
-      if Core.eval(target_mod, key) isa Type
-        types = concretesubtypes(Core.eval(target_mod, key))
-      else
-        error("cannot create default concretization from type tag $target_mod.$key: not a type")
-      end
-    else
-      error("cannot create default concretization from type tag $target_mod.$key: not defined")
-    end
-    _concretize(base_mod, target_mod, key, types)
-  end
-  return Set{Type}(target_mod.__hyperspecialize__[key].concretization)
-end
 
-"""
-    @concretization(tag)
-
-Return the set of types corresponding to a type tag.  A type tag is a
-module-qualified symbol `mod.:Key` where mod specifies a module and `:Key` is a
-symbol.  If just the `:Key` is given, then the module is assumed to be the
-module in which the macro was expanded.  If no concretization exists, create a
-default concretization consisting of the conrete subtypes of whatever type
-shares the name of `Key` at load time.
-
-A concretization can be set and modified with `@concretize` and `@widen`
-
-# Examples
-```julia-repl
-julia> @concretization(Main.Real)
-Set(Type[BigInt, Bool, UInt32, Float64, Float32, Int64, Int128, Float16, UInt128, UInt8, UInt16, BigFloat, Int8, UInt64, Int16, Int32])
-
-julia> @concretize BestInts [Int32, Int64]
-Set(Type[Int32, Int64])
-
-julia> @concretization BestInts
-Set(Type[Int32, Int64])
-
-julia> @concretization NotDefinedHere
-ERROR: cannot create default concretization from type tag Main.NotDefinedHere: not defined.
-```
-"""
-macro concretization(K)
-  (M, K) = parse_element(__module__, K)
-  return :(_concretization($(esc(__module__)), $(esc(M)), $(K)))
-end
 
 _is_hyperspecialize(X) = false
 function _is_hyperspecialize(X::Expr)
@@ -298,7 +360,7 @@ function _define(E, r::Replicable)
     X
   end, E)
   if found
-    for typ in _concretization(r.def_mod, target_mod, key)
+    for typ in _concretize(r.def_mod, target_mod, key)
       found = false
       _define(postwalk(X -> begin
         if _is_hyperspecialize(X) && !found
@@ -320,7 +382,7 @@ end
 function _replicable(base_mod::Module, E, elements::Vararg{Tuple{Module, Symbol}})
   r = Replicable(base_mod, E, Set{Any}(), [elements...])
   for (target_mod, key) in Set{Tuple{Module, Symbol}}([elements...])
-    _concretization(base_mod, target_mod, key)
+    _concretize(base_mod, target_mod, key)
     push!(target_mod.__hyperspecialize__[key].replicables, r)
   end
   _define(r)

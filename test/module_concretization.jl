@@ -35,8 +35,8 @@ import Foo
   @test (@concretization Foo.Bar.Float64) == Set{Type}([UInt16, Float32])
 
   # Cannot reconcretize or concretize in other packages
-  @test_throws ErrorException @concretization(Foo.NotAType) == true
-  @test_throws ErrorException @concretization foo.Float32
+  @test_throws ErrorException @concretize(Foo.NotAType)
+  @test_throws ErrorException @concretize foo.Float32
   @test_throws ErrorException (@concretize foo.Float32 Int64)
 
   # Let's make sure that changes to modules are module-local

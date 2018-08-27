@@ -22,13 +22,13 @@ using Hyperspecialize
   @test @concretization(Integer) == Set{Type}([Int8, Int16, Int64])
 
   # What is the concretization without any previous calls to concretize?
-  @test @concretization(Unsigned) == Set{Type}([UInt128, UInt16, UInt32, UInt64, UInt8])
+  @test @concretization(Unsigned) == nothing
   # We should be able to widen the concretization of an abstract type to include a non-subtype.
   @test @widen(Unsigned, Bool) == Set{Type}([UInt128, UInt16, UInt32, UInt64, UInt8, Bool])
   @test @concretization(Unsigned) == Set{Type}([UInt128, UInt16, UInt32, UInt64, UInt8, Bool])
 
-  # What is the concretization of a non-type without any previous calls to concretize?
-  @test_throws ErrorException @concretization(NotAType)
+  # Can we concretize a non-type without any previous calls to concretize?
+  @test_throws ErrorException @concretize(NotAType)
   @test @concretize(NotAType, []) == Set{Type}()
   # We should be able to widen the concretization of a non-type
   @test @widen(NotAType, Bool) == Set{Type}([Bool])
@@ -61,7 +61,7 @@ using Hyperspecialize
   x = Int64
   @test @concretize(x, (Int32,)) == Set{Type}([Int32])
   @test @concretization(x) == Set{Type}([Int32])
-  @test @concretization(Int64) == Set{Type}([Int64])
+  @test @concretization(Int64) == nothing
 
   # What if we set the concretization before we define the type?
   @test @concretize(Wobble, []) == Set{Type}([])
