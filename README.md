@@ -135,7 +135,7 @@ JarrettNumber(PeterNumber(8.0))
 
 julia> using Hyperspecialize
 
-julia> @widen (Peter, myNumber) JarrettNumber
+julia> @widen Peter.myNumber JarrettNumber
 Set(Type[BigInt, Bool, UInt32, Float64, Float32, Int64, Int128, Float16, JarrettNumber, UInt128, UInt8, UInt16, BigFloat, Int8, UInt64, Int16, Int32])
 
 julia> friends = p + j
@@ -183,7 +183,7 @@ must ask for one explicitly using `@widen` on either Peter or Jarrett's
 `myNumber` type tag. If the user chooses to widen Jarrett's definitions, we get
 
 ```julia-repl
-julia> @widen (Jarrett, myNumber) PeterNumber
+julia> @widen Jarrett.myNumber PeterNumber
 Set(Type[BigInt, Bool, UInt32, Float64, Float32, Int64, Int128, Float16, PeterNumber, UInt128, UInt8, UInt16, BigFloat, Int8, UInt64, Int16, Int32])
 
 julia> p + j
@@ -193,7 +193,7 @@ JarrettNumber(PeterNumber(8.0))
 If the user instead chooses to widen Peter's definitions, we get
 
 ```julia-repl
-julia> @widen (Peter, myNumber) JarrettNumber
+julia> @widen Peter.myNumber JarrettNumber
 Set(Type[BigInt, Bool, UInt32, Float64, Float32, Int64, Int128, Float16, UInt128, UInt8, UInt16, BigFloat, Int8, UInt64, JarrettNumber, Int16, Int32])
 
 julia> p + j
@@ -215,32 +215,32 @@ as the *concretization*.
   You may specify the concretization of a type tag using the `@concretize`
 macro like this:
 ```julia
-@concretize Tag Int
+@concretize Key Int
 ```
 You may specify more than one type:
 ```julia
-@concretize Tag (Int, Float64, Float32)
+@concretize Key (Int, Float64, Float32)
 ```
 If you would like to expand the concretization of a type tag, use the
 `@widen` macro.
 ```julia
-@widen Tag (BigFloat, Bool)
+@widen Key (BigFloat, Bool)
 ```
 You may query the concretization of a type tag with the `@concretization`
 macro.
 ```julia
-@concretization Tag
+@concretization Key
 ```
 Type tags always have module-local scope and if no module is specified, they
 are interpreted as belonging to the module in which they are expanded. You may
-use the type tag form `mod.Tag` to specify a module anywhere a type tag is
+use the type tag form `mod.Key` to specify a module anywhere a type tag is
 an argument to a macro.
 ```julia
-@concretization(mod.Tag)
+@concretization(mod.Key)
 ```
-If no concretization is given for a type tag `Tag` in module `mod`, the tag
+If no concretization is given for a type tag `Key` in module `mod`, the tag
 is given the default concretization corresponding to all the concrete subtypes
-of whatever the symbol `Tag` means when evaluated in `mod` (so if you are
+of whatever the symbol `Key` means when evaluated in `mod` (so if you are
 making up a tag name, please define a concretization for it).
 
 ## Replicable
@@ -255,8 +255,8 @@ the concretization of a tag should be substituted.
   Thus, the following example
 ```julia
 module Foo
-  @concretize myTag (Int, Float32)
-  @replicable bar(x::@hyperspecialize(myTag), y::(@hyperspecialize mytag)) = x + y
+  @concretize myKey (Int, Float32)
+  @replicable bar(x::@hyperspecialize(myKey), y::(@hyperspecialize mytag)) = x + y
 end
 ```
   will execute the following code at global scope in `Foo`.
@@ -269,11 +269,11 @@ bar(x::Float32, y::Float32) = x + y
 
   If someone has loaded the `Foo` module and calls
 ```julia
-  @widen Foo.myTag Float64
+  @widen Foo.myKey Float64
 ```
 then the following code will execute at global scope in `Foo`.
 ```julia
-bar(x::FLoat64, y::Float64) = x + y
+bar(x::Float64, y::Float64) = x + y
 bar(x::Int, y::Float64) = x + y
 bar(x::Float32, y::Float64) = x + y
 bar(x::Float64, y::Int) = x + y
