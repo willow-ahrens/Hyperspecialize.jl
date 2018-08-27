@@ -3,6 +3,7 @@ module Hyperspecialize
 
 
 using InteractiveUtils
+using Base.Iterators
 
 
 
@@ -119,15 +120,20 @@ end
 
 
 struct Replicable
-  def_mod::Module
   E::Any
-  defined::Set{Any}
-  elements::Vector{Tuple{Module, Symbol}}
+  defined::Set{Tuple{Vararg{Type}}}
+  tags::Vector{Tuple{Module, Symbol}}
 end
 
 struct Tag
   concretization::Set{Type}
+  replicables::Vector{Tuple{Module, Int}}
+end
+
+struct State
   replicables::Vector{Replicable}
+  tags::Dict{Symbol, Tag}
+  State() = new(Vector{Replicable}(), Dict{Symbol, Tag}())
 end
 
 
@@ -144,18 +150,18 @@ function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::S
   if base_mod == target_mod
     if !isdefined(base_mod, :__hyperspecialize__)
       Core.eval(base_mod, quote
-        const global __hyperspecialize__ = Dict{Symbol, Any}()
+        const global __hyperspecialize__ = Hyperspecialize.State()
       end)
     end
-    if haskey(target_mod.__hyperspecialize__, key)
+    if haskey(target_mod.__hyperspecialize__.tags, key)
       error("cannot reconcretize \"$key\" in module \"$target_mod\"")
     else
-      target_mod.__hyperspecialize__[key] = Tag(types, [])
+      target_mod.__hyperspecialize__.tags[key] = Tag(types, [])
     end
   else
     error("cannot concretize \"$key\" in module \"$target_mod\" from module \"$base_mod\"")
   end
-  return Set{Type}(target_mod.__hyperspecialize__[key].concretization)
+  return Set{Type}(target_mod.__hyperspecialize__.tags[key].concretization)
 end
 
 """
@@ -243,10 +249,10 @@ end
 
 
 function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
-  if !isdefined(target_mod, :__hyperspecialize__) || !haskey(target_mod.__hyperspecialize__, key)
+  if !isdefined(target_mod, :__hyperspecialize__) || !haskey(target_mod.__hyperspecialize__.tags, key)
     return nothing
   end
-  return Set{Type}(target_mod.__hyperspecialize__[key].concretization)
+  return Set{Type}(target_mod.__hyperspecialize__.tags[key].concretization)
 end
 
 """
@@ -289,9 +295,9 @@ end
 
 function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Set{Type})
   _concretize(base_mod, target_mod, key)
-  union!(target_mod.__hyperspecialize__[key].concretization, types)
-  map(_define, target_mod.__hyperspecialize__[key].replicables)
-  return Set{Type}(target_mod.__hyperspecialize__[key].concretization)
+  union!(target_mod.__hyperspecialize__.tags[key].concretization, types)
+  map(((target_mod, num),) -> _define(base_mod, target_mod, target_mod.__hyperspecialize__.replicables[num]), target_mod.__hyperspecialize__.tags[key].replicables)
+  return Set{Type}(target_mod.__hyperspecialize__.tags[key].concretization)
 end
 
 """
@@ -346,46 +352,35 @@ function _get_hyperspecialize(X)
   return X.args[3]
 end
 
-_define(r::Replicable) = _define(r.E, r)
-
-function _define(E, r::Replicable)
-  found = false
-  target_mod = nothing
-  key = nothing
-  postwalk(X -> begin
-    if _is_hyperspecialize(X) && !found
-      (target_mod, key) = r.elements[_get_hyperspecialize(X)]
-      found = true
-    end
-    X
-  end, E)
-  if found
-    for typ in _concretize(r.def_mod, target_mod, key)
-      found = false
-      _define(postwalk(X -> begin
-        if _is_hyperspecialize(X) && !found
-          found = true
-          typ
+function _define(base_mod::Module, target_mod::Module, replicable::Replicable)
+  for types in product(map(tag -> _concretization(base_mod, tag...), replicable.tags)...)
+    if !(types in replicable.defined)
+      Core.eval(target_mod, postwalk(X -> begin
+        if _is_hyperspecialize(X)
+          types[_get_hyperspecialize(X)]
         else
           X
         end
-      end, E), r)
-    end
-  else
-    if !(E in r.defined)
-      Core.eval(r.def_mod, E)
-      push!(r.defined, E)
+      end, replicable.E))
+      push!(replicable.defined, types)
     end
   end
 end
 
-function _replicable(base_mod::Module, E, elements::Vararg{Tuple{Module, Symbol}})
-  r = Replicable(base_mod, E, Set{Any}(), [elements...])
-  for (target_mod, key) in Set{Tuple{Module, Symbol}}([elements...])
-    _concretize(base_mod, target_mod, key)
-    push!(target_mod.__hyperspecialize__[key].replicables, r)
+function _replicable(base_mod::Module, E, tags::Vararg{Tuple{Module, Symbol}})
+  if !isdefined(base_mod, :__hyperspecialize__)
+    Core.eval(base_mod, quote
+      const global __hyperspecialize__ = Hyperspecialize.State()
+    end)
   end
-  _define(r)
+  replicable = Replicable(E, Set{Any}(), [tags...])
+  push!(base_mod.__hyperspecialize__.replicables, replicable)
+  num = length(base_mod.__hyperspecialize__.replicables)
+  for (target_mod, key) in tags
+    _concretize(base_mod, target_mod, key)
+    push!(target_mod.__hyperspecialize__.tags[key].replicables, (base_mod, num))
+  end
+  _define(base_mod, base_mod, replicable)
 end
 
 """

@@ -1,6 +1,6 @@
-authors = ["Peter Ahrens <ptrahrens@gmail.com>"]
 name = "Hyperspecialize"
 uuid = "39c0bb8c-69c9-11e8-0cb2-fdbfca5dda29"
+authors = ["Peter Ahrens <ptrahrens@gmail.com>"]
 version = "0.1.0"
 
 [deps]
