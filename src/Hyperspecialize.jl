@@ -246,9 +246,9 @@ end
 Return the set of types corresponding to a type tag.  A type tag is a
 module-qualified symbol `mod.:Key` where mod specifies a module and `:Key` is a
 symbol.  If just the `:Key` is given, then the module is assumed to be the
-module in which the macro was expanded.  If no concretization exists, return
-the default concretization that would be created, if necessary, from the
-conrete subtypes of whatever type shares the name of `Key` at load time.
+module in which the macro was expanded.  If no concretization exists, create a
+default concretization consisting of the conrete subtypes of whatever type
+shares the name of `Key` at load time.
 
 A concretization can be set and modified with `@concretize` and `@widen`
 
