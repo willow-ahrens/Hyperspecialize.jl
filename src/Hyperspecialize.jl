@@ -125,15 +125,17 @@ struct Replicable
   type_tags::Vector{Tuple{Module, Symbol}}
 end
 
-struct Tag
+struct Concretization
   base::Set{Type}
+  contextual::Dict{Tuple{Module, Int}, Set{Type}}
   replicable_tags::Vector{Tuple{Module, Int}}
+  Concretization(types::Set{Type}) = new(types, Dict{Tuple{Module, Int}, Set{Type}}(), Vector{Tuple{Module, Int}}())
 end
 
 struct State
   replicables::Vector{Replicable}
-  concretizations::Dict{Symbol, Tag}
-  State() = new(Vector{Replicable}(), Dict{Symbol, Tag}())
+  concretizations::Dict{Symbol, Concretization}
+  State() = new(Vector{Replicable}(), Dict{Symbol, Concretization}())
 end
 
 
@@ -156,7 +158,7 @@ function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::S
     if haskey(target_mod.__hyperspecialize__.concretizations, key)
       error("cannot reconcretize \"$key\" in module \"$target_mod\"")
     else
-      target_mod.__hyperspecialize__.concretizations[key] = Tag(types, [])
+      target_mod.__hyperspecialize__.concretizations[key] = Concretization(types)
     end
   else
     error("cannot concretize \"$key\" in module \"$target_mod\" from module \"$base_mod\"")
