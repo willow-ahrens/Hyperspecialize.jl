@@ -167,13 +167,13 @@ function _concretize(base_mod::Module, target_mod::Module, key::Symbol, types::S
 end
 
 """
-    @concretize(tag, ts)
+    @concretize(typetag, types)
 
-Define the set of types corresponding to a type tag as `ts`, where `ts` is
-either a single type or any collection that may be passed to a set constructor.
-A type tag is a module-qualified symbol `mod.:Key` where mod specifies a module
-and `:Key` is a symbol.  If just the `:Key` is given, then the module is
-assumed to be the module in which the macro was expanded.
+Define the set of types corresponding to a type tag as `types`, where `types`
+is either a single type or any collection that may be passed to a set
+constructor.  A type tag is a module-qualified symbol `mod.:Key` where mod
+specifies a module and `:Key` is a symbol.  If just the `:Key` is given, then
+the module is assumed to be the module in which the macro was expanded.
 
 Note that you may not concretize a type in another module.
 
@@ -215,15 +215,15 @@ function _concretize(base_mod::Module, target_mod::Module, key::Symbol)
 end
 
 """
-    @concretize(tag)
+    @concretize(typetag)
 
-If no concretization exists, define the set of types corresponding to `tag` as
-the conrete subtypes of whatever type shares the name of `Key` at load time.
-`tag` is a type tag, or a module-qualified symbol `mod.:Key` where mod
-specifies a module and `:Key` is a symbol.  If just the `:Key` is given, then
-the module is assumed to be the module in which the macro was expanded.
+If no concretization exists, define the set of types corresponding to `typetag`
+as the concrete subtypes of whatever type shares the name of `Key` at load
+time.  `typetag` is a type tag, or a module-qualified symbol `mod.:Key` where
+mod specifies a module and `:Key` is a symbol.  If just the `:Key` is given,
+then the module is assumed to be the module in which the macro was expanded.
 
-Note that you may not concretize a tag in another module.
+Note that you may not concretize a type tag in another module.
 
 # Examples
 ```julia-repl
@@ -258,7 +258,7 @@ function _concretization(base_mod::Module, target_mod::Module, key::Symbol)
 end
 
 """
-    @concretization(tag)
+    @concretization(typetag)
 
 Return the set of types corresponding to a type tag.  A type tag is a
 module-qualified symbol `mod.:Key` where mod specifies a module and `:Key` is a
@@ -303,10 +303,10 @@ function _widen(base_mod::Module, target_mod::Module, key::Symbol, types::Set{Ty
 end
 
 """
-    @widen(tag, ts)
+    @widen(typetag, types)
 
-Expand the set of types corresponding to a type tag to include `ts`, where `ts`
-is either a single type or any collection that may be passed to a set
+Expand the set of types corresponding to a type tag to include `types`, where
+`types` is either a single type or any collection that may be passed to a set
 constructor.  A type tag is a module-qualified symbol `mod.:Key` where mod
 specifies a module and `:Key` is a symbol.  If just the `:Key` is given, then
 the module is assumed to be the module in which the macro was expanded.  If no
@@ -355,7 +355,7 @@ function _get_hyperspecialize(X)
 end
 
 function _define(base_mod::Module, target_mod::Module, replicable::Replicable)
-  for types in product(map(tag -> _concretization(base_mod, tag...), replicable.type_tags)...)
+  for types in product(map(type_tag -> _concretization(base_mod, type_tag...), replicable.type_tags)...)
     if !(types in replicable.defined)
       Core.eval(target_mod, postwalk(X -> begin
         if _is_hyperspecialize(X)
@@ -388,15 +388,16 @@ end
 """
     @replicable block
 
-Replicate the code in `block` where each tag referred to by
-`@hyperspecialize(tag)` is replaced by an element in the concretization of
-`tag`.  `block` is replicated at global scope in the module where `@replicable`
-was expanded once for each combination of types in the concretization of each
-`tag`.  A type tag is a module-qualified symbol `mod.:Key` where mod specifies
-a module and `:Key` is a symbol.  If just the `:Key` is given, then the module
-is assumed to be the module in which the macro was expanded.  If no
-concretization exists for a tag, create a default concretization consisting of
-the conrete subtypes of whatever type shares the name of `Key` at load time.
+Replicate the code in `block` where each type tag referred to by
+`@hyperspecialize(typetag)` is replaced by an element in the concretization of
+`typetag`.  `block` is replicated at global scope in the module where
+`@replicable` was expanded once for each combination of types in the
+concretization of each `typetag`.  A type tag is a module-qualified symbol
+`mod.:Key` where mod specifies a module and `:Key` is a symbol.  If just the
+`:Key` is given, then the module is assumed to be the module in which the macro
+was expanded.  If no concretization exists for a type tag, create a default
+concretization consisting of the conrete subtypes of whatever type shares the
+name of `Key` at load time.
 
 If `@widen` is called for a type tag which has been referenced by a
 `@replicable` code block, then that code block will be replicated even more to

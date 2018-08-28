@@ -255,8 +255,8 @@ the concretization of a tag should be substituted.
   Thus, the following example
 ```julia
 module Foo
-  @concretize myKey (Int, Float32)
-  @replicable bar(x::@hyperspecialize(myKey), y::(@hyperspecialize mytag)) = x + y
+  @concretize MyKey (Int, Float32)
+  @replicable bar(x::@hyperspecialize(MyKey), y::(@hyperspecialize MyKey)) = x + y
 end
 ```
   will execute the following code at global scope in `Foo`.
@@ -269,7 +269,7 @@ bar(x::Float32, y::Float32) = x + y
 
   If someone has loaded the `Foo` module and calls
 ```julia
-  @widen Foo.myKey Float64
+  @widen Foo.MyKey Float64
 ```
 then the following code will execute at global scope in `Foo`.
 ```julia
